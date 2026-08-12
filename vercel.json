@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin-portal/index.html" },
+    { "source": "/admin/(.*)", "destination": "/admin-portal/index.html" },
+    { "source": "/admin-portal/(.*)", "destination": "/admin-portal/$1" },
+    { "source": "/client-portal/(.*)", "destination": "/client-portal/$1" },
+    { "source": "/", "destination": "/client-portal/index.html" },
+    { "source": "/(.*)", "destination": "/client-portal/index.html" }
+  ]
+}
