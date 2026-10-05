@@ -7,6 +7,10 @@ const { sendJSON, authenticate } = require("../lib/router");
 const { requireFields, isEmail, ValidationError } = require("../lib/validate");
 const { audit } = require("../lib/audit");
 const { createSession, findValidSession, revokeSession, rotateSession } = require("../lib/sessions");
+const { rateLimit } = require("../lib/rateLimit");
+
+const customerLoginRateLimit = rateLimit({ windowMs: 60_000, max: 10 });
+const adminLoginRateLimit = rateLimit({ windowMs: 60_000, max: 5 });
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -50,7 +54,7 @@ async function ensureConfiguredAdmin() {
 }
 
 function registerSupabase(router) {
-  router.post("/api/auth/admin-login", async (req, res) => {
+  router.post("/api/auth/admin-login", adminLoginRateLimit, async (req, res) => {
     const { email, password } = req.body;
     requireFields(req.body, ["email", "password"]);
     const configuredEmail = String(process.env.ADMIN_LOGIN_EMAIL || "").trim().toLowerCase();
@@ -128,7 +132,7 @@ function registerSupabase(router) {
     sendJSON(res, 410, { error: "Phone/SMS verification is disabled for EcoStream right now. No verification code is required." });
   });
 
-  router.post("/api/auth/login", async (req, res) => {
+  router.post("/api/auth/login", customerLoginRateLimit, async (req, res) => {
     const { phone, pin } = req.body;
     requireFields(req.body, ["phone", "pin"]);
     validatePin(pin);
@@ -192,13 +196,15 @@ function registerSupabase(router) {
     if (req.body.address !== undefined) patch.address = req.body.address;
     const profile = await getRequestDb(req).collection("profiles").updateById(req.user.id, patch);
     if (!profile) return sendJSON(res, 404, { error: "User profile not found" });
-    if (req.body.name) {
-      await supabaseAuth.updateUser(req.user.accessToken, { data: { ...(req.user.authUser.user_metadata || {}), name: req.body.name } });
-    }
-    if (req.body.phone) {
-      // SMS-independent phone changes: update Auth metadata only.
-      // The deterministic internal Auth email remains stable for the existing account.
-      await supabaseAuth.updateUser(req.user.accessToken, { data: { ...(req.user.authUser.user_metadata || {}), phone: patch.phone } });
+    if (req.body.name || req.body.phone) {
+      // Keep Auth metadata changes atomic so updating name + phone together
+      // cannot overwrite one field with a stale metadata snapshot.
+      const metadata = {
+        ...(req.user.authUser.user_metadata || {}),
+        ...(req.body.name ? { name: String(req.body.name).trim() } : {}),
+        ...(req.body.phone ? { phone: patch.phone } : {}),
+      };
+      await supabaseAuth.updateUser(req.user.accessToken, { data: metadata });
     }
     sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone } });
   });
