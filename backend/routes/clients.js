@@ -13,9 +13,7 @@ function register(router) {
     const database = getRequestDb(req);
     let clients = (await database.collection(isSupabase() ? "profiles" : "users").find({ role: "client" })).map(publicUser);
     if (isSupabase()) {
-      const authUsers = await supabaseAuth.adminListUsers();
-      const emailById = new Map(authUsers.map((u) => [u.id, u.email || ""]));
-      clients = clients.map((client) => ({ ...client, email: emailById.get(client.id) || "" }));
+      
     }
     const filtered = textFilter(clients, req.query.search, ["name", "email", "phone", "address"]);
     const { items, paginated, meta } = paginate(filtered, req.query);
@@ -23,18 +21,17 @@ function register(router) {
   });
 
   router.post("/api/clients", authenticate, requireRole("admin", "staff"), async (req, res) => {
-    const { name, email, phone, address } = req.body;
+    const { name, phone, pin, address } = req.body;
     if (!name || !phone) throw new ValidationError("name and phone are required");
     if (isSupabase()) {
-      if (!email || !String(email).trim()) throw new ValidationError("email is required when Supabase Auth is enabled");
-      const tempPassword = Math.random().toString(36).slice(2, 10) + "A1!";
+      if (!pin || !/^\d{6}$/.test(String(pin))) throw new ValidationError("A 6-digit PIN is required");
       let authUser;
       try {
-        authUser = await supabaseAuth.adminCreateUser({ email: String(email).toLowerCase(), password: tempPassword, data: { name, phone, role: "client" } });
+        authUser = await supabaseAuth.adminCreateUser({ phone, password: String(pin), phoneConfirmed: true, data: { name, phone, role: "client" } });
         const client = await getRequestDb(req).collection("profiles").updateById(authUser.id, { role: "client", status: "active", name, phone, address: address || "" });
         if (!client) throw Object.assign(new Error("Supabase Auth user was created but profile provisioning failed"), { status: 502 });
         await audit(req, "client_created", { clientId: authUser.id });
-        return sendJSON(res, 201, { client: publicUser({ ...client, email: authUser.email }), tempPassword });
+        return sendJSON(res, 201, { client: publicUser({ ...client, phone: authUser.phone || client.phone }) });
       } catch (err) {
         if (authUser?.id) { try { await supabaseAuth.adminDeleteUser(authUser.id); } catch {} }
         throw err;
@@ -51,21 +48,13 @@ function register(router) {
     const users = getRequestDb(req).collection(isSupabase() ? "profiles" : "users");
     const existing = await users.findById(req.params.id);
     if (!existing || existing.role !== "client") return sendJSON(res, 404, { error: "Client not found" });
-    const { name, email, phone, address } = req.body;
-    if (isSupabase() && email) {
-      const authUser = await supabaseAuth.adminGetUser(req.params.id);
-      if (String(email).toLowerCase() !== String(authUser.email || "").toLowerCase()) {
-        await supabaseAuth.adminUpdateUser(req.params.id, { email: String(email).toLowerCase(), email_confirm: true });
-      }
-    }
-    const patch = {};
+    const { name, phone, address } = req.body;
+        const patch = {};
     if (name) patch.name = name;
     if (phone) patch.phone = phone;
     if (address !== undefined) patch.address = address;
-    if (!isSupabase() && email) patch.email = email;
-    const updated = await users.updateById(req.params.id, patch);
-    const finalEmail = isSupabase() ? (await supabaseAuth.adminGetUser(req.params.id)).email : updated.email;
-    sendJSON(res, 200, { client: publicUser({ ...updated, email: finalEmail }) });
+        const updated = await users.updateById(req.params.id, patch);
+    sendJSON(res, 200, { client: publicUser(updated) });
   });
 
   router.patch("/api/clients/:id/status", authenticate, requireRole("admin"), async (req, res) => {
