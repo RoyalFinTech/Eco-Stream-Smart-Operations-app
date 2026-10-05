@@ -75,3 +75,22 @@ See the repository documentation for deployment, API, security, and migration de
 ## License
 
 No license file is currently included. All rights remain with the project owner unless a license is added.
+
+
+## Render production deployment
+
+The recommended production host is Render with a single Web Service defined by the repository-root render.yaml.
+
+The service runs the backend from backend/ and serves:
+
+- / — client portal
+- /portal/ — client portal
+- /admin/ — admin portal
+- /api/* — backend API
+- /api/health — health check
+
+Supabase remains the production identity, database, and document-storage platform. Render PostgreSQL is not required.
+
+See documentation/RENDER_DEPLOYMENT.md for the exact environment variables, secret-handling rules, rollout procedure, and acceptance checklist.
+
+For live operation, use a paid Render plan after acceptance testing because Render documents that Free web services can spin down after inactivity.
