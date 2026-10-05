@@ -64,3 +64,29 @@ The service-role key is server-only. It is required for privileged Auth administ
 8. Test admin provisioning, project flow, documents, tickets, chat and payments.
 
 Render automatically redeploys linked services when new commits land on the configured branch.
+
+
+## What the project owner needs to provide
+
+Do not send secret keys through chat or commit them to GitHub. The values below should be entered directly into Render's Environment Variables:
+
+1. **SUPABASE_URL** — the Eco Stream Borehole Drilling project URL.
+2. **SUPABASE_ANON_KEY** — Supabase project's public anon key.
+3. **SUPABASE_SERVICE_ROLE_KEY** — Supabase project's server-only service-role secret. This must stay in Render and must never be exposed to the browser.
+4. **ALLOWED_ORIGINS** — initially the Render service URL; when custom domains are added, include those origins as a comma-separated list.
+
+No Render PostgreSQL database is required. Supabase PostgreSQL is already the production database.
+
+## Recommended rollout
+
+**Phase 1 — acceptance:** deploy the unified service on Render's Free plan, complete end-to-end testing, and confirm the public client/admin flows.
+
+**Phase 2 — live operations:** move the Render service to a paid plan before relying on it for continuous business operations. Render documents that Free web services can spin down after 15 minutes of inactivity, which is undesirable for a customer-facing operational system. The application architecture itself does not need to change when the plan changes.
+
+## Security rules
+
+- Never put SUPABASE_SERVICE_ROLE_KEY in client HTML/JavaScript.
+- Never put Supabase secrets in render.yaml values.
+- Do not create a second production database in Render.
+- Do not run the standalone Prisma migration against the existing Supabase production schema.
+- Keep Supabase RLS enabled.
