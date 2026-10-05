@@ -1,20 +1,3 @@
-# Render.com deployment — https://render.com
-# Push this repo (or just the backend/ folder as its own repo) to GitHub,
-# then in Render: New -> Blueprint -> point at the repo. Render reads this
-# file automatically. Free tier available, no credit card required to start.
-services:
-  - type: web
-    name: ecostream-api
-    runtime: node
-    plan: free
-    buildCommand: "npm install"
-    startCommand: "node server.js"
-    envVars:
-      - key: JWT_SECRET
-        generateValue: true
-      - key: PORT
-        value: 4000
-    disk:
-      name: ecostream-data
-      mountPath: /opt/render/project/src/database
-      sizeGB: 1
+# DEPRECATED: the canonical production Render Blueprint is /render.yaml at repository root.
+# Keep this file only as a reference for deployments that explicitly target backend/.
+# Production uses the root Blueprint so the API and both portals deploy together.
