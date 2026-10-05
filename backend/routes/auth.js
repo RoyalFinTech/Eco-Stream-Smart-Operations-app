@@ -28,7 +28,7 @@ function registerSupabase(router) {
         message: result.session ? "Account created successfully." : "Account created. Please verify your email before signing in.",
         token: result.session?.access_token || null,
         refreshToken: result.session?.refresh_token || null,
-        user: result.user ? { id: result.user.id, email: result.user.email, name, phone, role: "client" } : null,
+        user: result.user ? { id: result.user.id, email: result.user.email, name, phone, role: "client", authProvider: "supabase" } : null,
       });
     } catch (err) {
       if (err.status === 422 || /already registered|already exists/i.test(err.message)) return sendJSON(res, 409, { error: "An account with this email already exists" });
@@ -50,7 +50,7 @@ function registerSupabase(router) {
       sendJSON(res, 200, {
         token: session.access_token,
         refreshToken: session.refresh_token,
-        user: { ...profile, email: session.user?.email },
+        user: { ...profile, email: session.user?.email, authProvider: "supabase" },
       });
     } catch (err) {
       if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "Invalid email or password" });
@@ -70,7 +70,10 @@ function registerSupabase(router) {
   });
 
   router.post("/api/auth/logout", authenticate, async (req, res) => {
-    // Supabase session revocation is owned by Supabase Auth; the client should discard its session.
+    try { await supabaseAuth.signOut(req.user.accessToken); } catch (err) {
+      // A local client-side discard is still safe if the remote session is already invalid.
+      if (![401, 403].includes(err.status)) throw err;
+    }
     sendJSON(res, 200, { message: "Logged out" });
   });
 
