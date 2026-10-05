@@ -42,7 +42,10 @@ function register(router) {
     const { name, phone, staffRole } = req.body;
     const patch = {};
     if (name) patch.name = name;
-    if (phone) patch.phone = phone;
+    if (phone) {
+      patch.phone = phone;
+      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { phone: supabaseAuth.normalizePhone(phone), phone_confirm: true });
+    }
     if (staffRole) patch.staffRole = staffRole;
     if (isSupabase() && staffRole) patch.role = staffRole === "administrator" ? "admin" : "staff";
     const updated = await getRequestDb(req).collection(isSupabase() ? "profiles" : "users").updateById(req.params.id, patch);
