@@ -1088,14 +1088,14 @@ document.addEventListener("submit", async (e)=>{
       setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Phone verified — welcome to EcoStream!","success"); render();
     }
     else if(kind==="forgot"){
-      const res = await api("/api/auth/forgot-password", { method:"POST", body: JSON.stringify(data) });
+      const res = await api("/api/auth/forgot-pin", { method:"POST", body: JSON.stringify(data) });
       toast(res.message, "success");
       
       state.authMode = "reset"; renderAuth();
     }
     else if(kind==="reset"){
       await api("/api/auth/reset-password", { method:"POST", body: JSON.stringify(data) });
-      toast("Password reset — please sign in.", "success");
+      toast("PIN updated — please sign in.", "success");
       state.authMode = "login"; renderAuth();
     }
     else if(kind==="booking"){
