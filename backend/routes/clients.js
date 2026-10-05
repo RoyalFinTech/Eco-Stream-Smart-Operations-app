@@ -12,10 +12,7 @@ function register(router) {
   router.get("/api/clients", authenticate, requireRole("admin", "staff"), async (req, res) => {
     const database = getRequestDb(req);
     let clients = (await database.collection(isSupabase() ? "profiles" : "users").find({ role: "client" })).map(publicUser);
-    if (isSupabase()) {
-      
-    }
-    const filtered = textFilter(clients, req.query.search, ["name", "email", "phone", "address"]);
+    const filtered = textFilter(clients, req.query.search, ["name", "phone", "address"]);
     const { items, paginated, meta } = paginate(filtered, req.query);
     sendJSON(res, 200, paginated ? { clients: items, meta } : { clients: items });
   });
@@ -39,9 +36,9 @@ function register(router) {
     }
     const { hashPassword, genId } = require("../lib/auth");
     const users = db.collection("users");
-    const tempPassword = Math.random().toString(36).slice(2, 10);
-    const client = await users.insert({ id: genId("u"), role: "client", status: "active", name, email: email || "", phone, address: address || "", password: hashPassword(tempPassword), createdAt: new Date().toISOString() });
-    sendJSON(res, 201, { client: publicUser(client), tempPassword });
+    const localPin = /^\d{6}$/.test(String(pin || "")) ? String(pin) : Math.floor(100000 + Math.random() * 900000).toString();
+    const client = await users.insert({ id: genId("u"), role: "client", status: "active", name, email: "", phone, address: address || "", password: hashPassword(localPin), createdAt: new Date().toISOString() });
+    sendJSON(res, 201, { client: publicUser(client), tempPin: localPin });
   });
 
   router.put("/api/clients/:id", authenticate, requireRole("admin", "staff"), async (req, res) => {
