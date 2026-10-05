@@ -49,8 +49,8 @@ function register(router) {
         const patch = {};
     if (name) patch.name = name;
     if (phone) {
-      patch.phone = phone;
-      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { user_metadata: { phone: supabaseAuth.normalizePhone(phone) } });
+      patch.phone = supabaseAuth.normalizePhone(phone);
+      if (isSupabase()) await supabaseAuth.adminUpdatePhoneIdentity(req.params.id, patch.phone);
     }
     if (address !== undefined) patch.address = address;
         const updated = await users.updateById(req.params.id, patch);
