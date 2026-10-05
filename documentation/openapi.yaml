@@ -1,0 +1,444 @@
+openapi: 3.0.3
+info:
+  title: EcoStream API
+  version: "1.1.0"
+  description: >
+    Borehole drilling services API for EcoStream Ltd. Zero external
+    dependencies (see backend/README.md). All endpoints are also reachable
+    under /api/v1/ for versioned/mobile clients — both paths hit the same
+    handlers.
+servers:
+  - url: http://localhost:4000
+    description: Local development
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        role: { type: string, enum: [client, staff, admin] }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        address: { type: string }
+        status: { type: string, enum: [active, suspended, pending] }
+        emailVerified: { type: boolean }
+    Project:
+      type: object
+      properties:
+        id: { type: string }
+        clientId: { type: string }
+        location: { type: string }
+        status: { type: string, enum: [pending, ongoing, completed] }
+        depth: { type: integer }
+        totalDepth: { type: integer }
+        waterYield: { type: number }
+        soilType: { type: string }
+        notes: { type: string }
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        "200": { description: OK }
+
+  /api/auth/register:
+    post:
+      summary: Client self-registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, phone, password]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                phone: { type: string }
+                address: { type: string }
+                password: { type: string, minLength: 8 }
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  refreshToken: { type: string }
+                  user: { $ref: "#/components/schemas/User" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/auth/login:
+    post:
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: Logged in — returns token, refreshToken, user }
+        "401": { description: Invalid credentials }
+        "423": { description: Account temporarily locked after too many failed attempts }
+
+  /api/auth/refresh:
+    post:
+      summary: Exchange a refresh token for a new access token (rotates the refresh token)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200": { description: New token + refreshToken issued }
+        "401": { description: Refresh token invalid, expired, or revoked }
+
+  /api/auth/logout:
+    post:
+      summary: Log out (revokes the session tied to the supplied refreshToken, if any)
+      responses:
+        "200": { description: Logged out }
+
+  /api/auth/forgot-password:
+    post:
+      summary: Request a password reset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [email], properties: { email: { type: string } } }
+      responses:
+        "200": { description: Always 200 — does not leak whether the email exists }
+
+  /api/auth/reset-password:
+    post:
+      summary: Reset password using a token from forgot-password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties: { token: { type: string }, newPassword: { type: string, minLength: 8 } }
+      responses:
+        "200": { description: Password reset }
+        "400": { description: Token invalid or expired }
+
+  /api/auth/verify-email:
+    post:
+      summary: Verify an email address
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [token], properties: { token: { type: string } } }
+      responses:
+        "200": { description: Email verified }
+
+  /api/auth/profile:
+    get:
+      summary: Get the current user's profile
+      responses:
+        "200": { description: OK }
+    put:
+      summary: Update the current user's profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { name: { type: string }, phone: { type: string }, address: { type: string } }
+      responses:
+        "200": { description: Updated }
+
+  /api/auth/sessions:
+    get:
+      summary: List this user's active devices/sessions
+      responses:
+        "200": { description: OK }
+    delete:
+      summary: Revoke all sessions (sign out everywhere)
+      responses:
+        "200": { description: OK }
+
+  /api/auth/sessions/{id}:
+    delete:
+      summary: Revoke a single session
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: OK }
+        "404": { description: Not found }
+
+  /api/clients:
+    get:
+      summary: List clients (admin/staff)
+      parameters:
+        - { name: search, in: query, schema: { type: string }, description: "Filters by name/email/phone/address" }
+        - { name: page, in: query, schema: { type: integer } }
+        - { name: pageSize, in: query, schema: { type: integer } }
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Create a client (admin/staff)
+      responses:
+        "201": { description: Created }
+
+  /api/clients/{id}:
+    put:
+      summary: Edit a client (admin/staff)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Delete a client (admin)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+
+  /api/clients/{id}/status:
+    patch:
+      summary: Approve/suspend a client (admin)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object, properties: { status: { type: string, enum: [active, suspended, pending] } } }
+      responses: { "200": { description: Updated } }
+
+  /api/projects:
+    get:
+      summary: List projects (own for clients, all for staff/admin)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects: { type: array, items: { $ref: "#/components/schemas/Project" } }
+    post:
+      summary: Create a project (admin/staff)
+      responses: { "201": { description: Created } }
+
+  /api/projects/{id}:
+    put:
+      summary: Update a project (admin/staff)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Delete a project (admin)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+
+  /api/projects/status/{id}:
+    get:
+      summary: Get project status/percent complete
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK } }
+
+  /api/projects/timeline/{id}:
+    get:
+      summary: Get project timeline events
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK } }
+
+  /api/bookings:
+    get:
+      summary: List bookings (own for clients, all for staff/admin)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a drilling/site-survey request (client)
+      responses: { "201": { description: Created } }
+
+  /api/bookings/{id}:
+    put:
+      summary: Approve/reject a booking (admin/staff)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Cancel a booking
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+
+  /api/payments:
+    get:
+      summary: List payments (own for clients, all for staff/admin)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Record a payment (admin/staff)
+      responses: { "201": { description: Created } }
+
+  /api/invoices:
+    get:
+      summary: List invoices (payments with an invoiceNumber attached)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create an unpaid invoice (admin/staff)
+      responses: { "201": { description: Created } }
+
+  /api/tickets:
+    get:
+      summary: List support tickets
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [open, in-progress, resolved] } }
+        - { name: page, in: query, schema: { type: integer } }
+        - { name: pageSize, in: query, schema: { type: integer } }
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a support ticket
+      responses: { "201": { description: Created } }
+
+  /api/tickets/{id}:
+    put:
+      summary: Reply to / update status of a ticket
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Delete a ticket (admin/staff)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+
+  /api/staff:
+    get:
+      summary: List staff (admin)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a staff account (admin)
+      responses: { "201": { description: Created } }
+
+  /api/staff/{id}:
+    put:
+      summary: Edit a staff member (admin)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Remove a staff member (admin)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+
+  /api/equipment:
+    get:
+      summary: List equipment (admin/staff)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Add equipment (admin)
+      responses: { "201": { description: Created } }
+
+  /api/expenses:
+    get:
+      summary: List fuel/maintenance expenses (admin/staff)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Log an expense (admin/staff)
+      responses: { "201": { description: Created } }
+
+  /api/documents:
+    get:
+      summary: List documents (metadata only)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Upload a document (base64 payload — no multipart parser available offline)
+      responses: { "201": { description: Created } }
+
+  /api/documents/{id}:
+    get:
+      summary: Download a document (includes base64 file bytes)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK } }
+    delete:
+      summary: Delete a document (admin/staff)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+
+  /api/chat/conversations:
+    get:
+      summary: List client chat conversations (admin/staff)
+      responses: { "200": { description: OK } }
+
+  /api/chat/{clientId}:
+    get:
+      summary: Get a chat thread ("me" for the client's own thread)
+      parameters: [{ name: clientId, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Send a chat message
+      parameters: [{ name: clientId, in: path, required: true, schema: { type: string } }]
+      responses: { "201": { description: Created } }
+
+  /api/notifications:
+    get:
+      summary: List notifications
+      responses: { "200": { description: OK } }
+    post:
+      summary: Send/broadcast a notification (admin/staff)
+      responses: { "201": { description: Created } }
+
+  /api/notifications/{id}/read:
+    patch:
+      summary: Mark a notification as read
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+
+  /api/reports:
+    get:
+      summary: Financial/operational report for a date range (admin/staff)
+      parameters:
+        - { name: range, in: query, schema: { type: string, enum: [daily, weekly, monthly, annual] } }
+        - { name: date, in: query, schema: { type: string, format: date } }
+      responses: { "200": { description: OK } }
+
+  /api/cms:
+    get:
+      summary: Public site content (hero text, contact info)
+      security: []
+      responses: { "200": { description: OK } }
+    put:
+      summary: Update site content (admin)
+      responses: { "200": { description: Updated } }
+
+  /api/audit-logs:
+    get:
+      summary: List the last 500 audit events (admin)
+      responses: { "200": { description: OK } }
+
+  /api/dashboard/stats:
+    get:
+      summary: Admin dashboard aggregate stats
+      responses: { "200": { description: OK } }
+
+  /api/dashboard/client:
+    get:
+      summary: Client's own dashboard summary
+      responses: { "200": { description: OK } }
