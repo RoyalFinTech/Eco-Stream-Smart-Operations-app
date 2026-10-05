@@ -85,3 +85,16 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - Confirmed the administrator login is isolated to the server-side ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_PASSWORD environment contract and provisions/verifies an admin profile before returning a session; no administrator password is stored in the repository.
 - Current external prerequisite remains: Supabase Auth Phone/SMS and Passkeys/WebAuthn must be enabled and configured for the production project, including the stable WebAuthn relying-party ID/origin. The connected engineering interface does not expose those provider settings, so this is recorded as a deployment prerequisite rather than falsely certified.
 - Reference checked against current Supabase passkey documentation: passkey support is experimental, requires explicit client opt-in, requires an existing confirmed user for registration, and uses discoverable credentials for sign-in.
+
+
+## 49. SMS-independent customer authentication + in-app support chat
+- Customer self-registration no longer depends on Supabase Phone/SMS being enabled.
+- The customer-facing identifier remains the Gambian phone number plus six-digit PIN.
+- Server-side Supabase Auth uses a confirmed internal email identity mapped deterministically from the normalized phone number; the internal identity is never shown as the customer's email and no SMS is sent.
+- Customer registration provisions the production `public.profiles` record and signs the customer in immediately.
+- Customer login resolves the phone number to the corresponding Supabase Auth identity and authenticates with the PIN.
+- The phone verification endpoint remains only as a compatibility response and explicitly reports that SMS verification is disabled; it does not call the SMS provider.
+- Existing passkey/biometric capability remains available after normal sign-in; it does not depend on SMS.
+- In-app client↔company chat is retained as the immediate communication channel. The client portal already exposes Chat with Company, while the admin portal exposes client conversation lists and reply threads.
+- Supabase Phone/SMS can be enabled later as an optional verification layer without changing the customer-facing phone + PIN account model.
+- Certified source changes: `backend/lib/supabaseAuth.js`, `backend/routes/auth.js`, `client-portal/index.html`.
