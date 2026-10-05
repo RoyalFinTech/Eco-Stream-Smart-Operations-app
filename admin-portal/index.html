@@ -508,7 +508,7 @@ async function loadClients(search=""){
 function clientsHtml(clients, search=""){
   return `
   <div class="row-between" style="margin-bottom:12px;gap:10px;">
-    <input id="client-search" value="${esc(search)}" placeholder="🔍 Search name, email, phone..." style="flex:1;max-width:320px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);">
+    <input id="client-search" value="${esc(search)}" placeholder="🔍 Search name or phone..." style="flex:1;max-width:320px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);">
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline btn-sm" data-action="export-clients-csv">⬇ Export CSV</button>
       <button class="btn btn-primary btn-sm" data-action="new-client">+ Add Client</button>
@@ -521,7 +521,7 @@ function clientsHtml(clients, search=""){
     <tbody>${clients.map(c=>`
       <tr>
         <td><div class="row"><div class="avatar" style="width:30px;height:30px;font-size:11px;">${initials(c.name)}</div><b>${esc(c.name)}</b></div></td>
-        <td>${esc(c.phone||"—")}<br><span style="color:var(--text-faint);font-size:11.5px;">${esc(c.email||"")}</span></td>
+        <td>${esc(c.phone||"—")}</td>
         <td>${esc(c.address||"—")}</td>
         <td>${statusBadge(c.status||"active")}</td>
         <td>
@@ -548,7 +548,7 @@ function newClientModal(){
     <form data-form="new-client">
       <div class="field"><label>Name *</label><input name="name" required></div>
       <div class="field"><label>Phone *</label><input name="phone" required></div>
-      <div class="field"><label>Email</label><input type="email" name="email"></div>
+      <div class="field"><label>6-Digit PIN</label><input type="password" name="pin" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>
       <div class="field"><label>Address</label><input name="address"></div>
       <button class="btn btn-primary btn-block" type="submit">Create Client</button>
     </form>`, "");
@@ -559,7 +559,6 @@ function editClientModal(id){
     <form data-form="edit-client" data-id="${id}">
       <div class="field"><label>Name</label><input name="name" value="${esc(c.name)}" required></div>
       <div class="field"><label>Phone</label><input name="phone" value="${esc(c.phone||'')}" required></div>
-      <div class="field"><label>Email</label><input type="email" name="email" value="${esc(c.email||'')}"></div>
       <div class="field"><label>Address</label><input name="address" value="${esc(c.address||'')}"></div>
       <button class="btn btn-primary btn-block" type="submit">Save Changes</button>
     </form>`, "");
@@ -666,7 +665,7 @@ function staffHtml(staff){
   `<div class="grid grid-3">${staff.map(s=>`
     <div class="card card-pad">
       <div class="row" style="margin-bottom:10px;"><div class="avatar">${initials(s.name)}</div><div><b style="font-size:13.5px;">${esc(s.name)}</b><div style="font-size:11.5px;color:var(--text-muted);">${ROLE_LABELS[s.staffRole]||s.staffRole}</div></div></div>
-      <div style="font-size:12px;color:var(--text-muted);">${esc(s.email)}<br>${esc(s.phone)}</div>
+      <div style="font-size:12px;color:var(--text-muted);">${esc(s.phone)}</div>
       <div class="row" style="margin-top:12px;">
         <button class="btn btn-outline btn-sm" data-action="edit-staff" data-id="${s.id}">Edit</button>
         <button class="btn btn-outline btn-sm" data-action="delete-staff" data-id="${s.id}">Remove</button>
@@ -677,7 +676,7 @@ function newStaffModal(){
   showModal("Add Staff Member", `
     <form data-form="new-staff">
       <div class="field"><label>Name *</label><input name="name" required></div>
-      <div class="field"><label>Email *</label><input type="email" name="email" required></div>
+      <div class="field"><label>6-Digit PIN *</label><input type="password" name="pin" required inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>
       <div class="field"><label>Phone *</label><input name="phone" required></div>
       <div class="field"><label>Role *</label><select name="staffRole"><option value="engineer">Engineer</option><option value="technician">Technician</option><option value="driver">Driver</option><option value="administrator">Administrator</option></select></div>
       <button class="btn btn-primary btn-block" type="submit">Create Staff Account</button>
@@ -1062,7 +1061,7 @@ document.addEventListener("click", async (e)=>{
 
   if(action==="new-client"){ newClientModal(); return; }
   if(action==="export-clients-csv"){
-    const rows = [["Name","Phone","Email","Address","Status"], ...(state.cache.clients||[]).map(c=>[c.name,c.phone,c.email||"",c.address||"",c.status||"active"])];
+    const rows = [["Name","Phone","Address","Status"], ...(state.cache.clients||[]).map(c=>[c.name,c.phone,c.address||"",c.status||"active"])];
     downloadCsv("ecostream-clients.csv", rows);
     return;
   }
@@ -1160,7 +1159,7 @@ document.addEventListener("submit", async (e)=>{
       await api("/api/projects/"+form.dataset.id+"/timeline", {method:"POST", body:JSON.stringify(data)});
       toast("Timeline event added","success"); openProjectDetail(form.dataset.id);
     }
-    else if(kind==="new-staff"){ const res=await api("/api/staff", {method:"POST", body:JSON.stringify(data)}); toast("Staff created — temp password: "+res.tempPassword,"success"); closeModal(); loadStaff(); }
+    else if(kind==="new-staff"){ const res=await api("/api/staff", {method:"POST", body:JSON.stringify(data)}); toast("Staff account created successfully","success"); closeModal(); loadStaff(); }
     else if(kind==="edit-staff"){ await api("/api/staff/"+form.dataset.id, {method:"PUT", body:JSON.stringify(data)}); toast("Staff updated","success"); closeModal(); loadStaff(); }
     else if(kind==="new-equipment"){ await api("/api/equipment", {method:"POST", body:JSON.stringify(data)}); toast("Equipment added","success"); closeModal(); loadEquipment(); }
     else if(kind==="new-expense"){ data.amount=Number(data.amount); await api("/api/expenses", {method:"POST", body:JSON.stringify(data)}); toast("Expense logged","success"); closeModal(); loadEquipment("expenses"); }
