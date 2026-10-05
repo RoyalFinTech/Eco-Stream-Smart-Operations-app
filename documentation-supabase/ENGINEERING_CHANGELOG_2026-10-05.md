@@ -18,3 +18,10 @@
 
 ## Source-of-truth rule
 These changes belong to the current v1.3 engineering line. Do not mix them with v1.2 archives or the rejected archive containing accidental `.git` metadata.
+
+15. Replaced legacy embedded frontend logo payloads with the supplied official EcoStream branding path in client/admin authentication and authenticated shells; added portal favicon and mobile top-bar branding.
+16. Added canonical EcoStream logo assets to both standalone portal folders and kept the asset self-contained per portal.
+17. Migrated chat, equipment/expenses, dashboard, reports, clients, staff, CMS, audit-log, and session routes onto the request-scoped Supabase data boundary while retaining JSON-provider compatibility.
+18. Added privileged Supabase Auth admin provisioning/deletion for staff/client management and documented SUPABASE_SERVICE_ROLE_KEY as required only for those server-side administrative operations.
+19. Added Supabase Auth logout/session handling and public CMS read support without bypassing RLS for normal authenticated data access.
+20. Frontend QA passed: no legacy embedded logo payloads remain, referenced branding assets resolve, both portal script blocks pass Node syntax validation, all backend JavaScript files pass node --check, and the JSON-provider smoke test passes.
