@@ -36,16 +36,28 @@ function register(router) {
     const storage = getStorageProvider();
     await storage.save(buffer, storageKey, mimeType);
 
-    const doc = await getRequestDb(req).collection("documents").insert({
-      clientId: ownerId,
-      fileName,
-      mimeType,
-      storageKey, // opaque key inside whichever provider is active — never a client-supplied path
-      category: category || "other", // report | water-test | contract | other
-      uploadedBy: req.user.id,
-      createdAt: new Date().toISOString(),
-    });
-    sendJSON(res, 201, { document: doc });
+    try {
+      const doc = await getRequestDb(req).collection("documents").insert({
+        clientId: ownerId,
+        fileName,
+        mimeType,
+        storageKey, // opaque key inside whichever provider is active — never a client-supplied path
+        category: category || "other", // report | water-test | contract | other
+        uploadedBy: req.user.id,
+        createdAt: new Date().toISOString(),
+      });
+      sendJSON(res, 201, { document: doc });
+    } catch (err) {
+      // The storage write must not become a permanent orphan when the
+      // metadata insert is rejected by validation/RLS or the database fails.
+      try { await storage.remove(storageKey); } catch (cleanupErr) {
+        require("../lib/logger").logger.error("Document storage cleanup failed", {
+          storageKey,
+          message: cleanupErr.message,
+        });
+      }
+      throw err;
+    }
   });
 
   // ---------- GET /api/documents (list — metadata only) ----------
