@@ -32,9 +32,11 @@ async function signUp({ phone, password, data }) {
   const normalizedPhone = normalizePhone(phone);
   return authRequest("signup", "POST", { phone: normalizedPhone, password, data: { ...(data || {}), phone: normalizedPhone } });
 }
-async function signIn({ phone, password }) {
-  const normalizedPhone = normalizePhone(phone);
-  return authRequest("token?grant_type=password", "POST", { phone: normalizedPhone, password });
+async function signIn({ phone, email, password }) {
+  const credentials = email
+    ? { email: String(email).trim().toLowerCase(), password }
+    : { phone: normalizePhone(phone), password };
+  return authRequest("token?grant_type=password", "POST", credentials);
 }
 async function refresh(refreshToken) {
   return authRequest("token?grant_type=refresh_token", "POST", { refresh_token: refreshToken });
@@ -81,7 +83,14 @@ async function adminRequest(path, method, body) {
   return data;
 }
 
-async function adminCreateUser({ phone, password, phoneConfirmed = true, data = {} }) {
+async function adminFindUserByEmail(email) {
+  const users = await adminListUsers();
+  const target = String(email || "").trim().toLowerCase();
+  return users.find((u) => String(u.email || "").toLowerCase() === target) || null;
+}
+async function adminCreateUser({ phone, email, password, phoneConfirmed = true, emailConfirmed = true, data = {} }) {
+  if (email) return adminRequest("users", "POST", { email: String(email).trim().toLowerCase(), password, email_confirm: emailConfirmed, user_metadata: { ...(data || {}) } });
+
   return adminRequest("users", "POST", { phone: normalizePhone(phone), password, phone_confirm: phoneConfirmed, user_metadata: { ...(data || {}), phone: normalizePhone(phone) } });
 }
 
@@ -97,7 +106,9 @@ async function adminListUsers() {
 
 async function adminUpdateUser(userId, attributes) {
   if (!userId) throw new Error("userId is required");
-  return adminRequest(`users/${encodeURIComponent(userId)}`, "PUT", attributes);
+  const next = { ...(attributes || {}) };
+  if (next.phone) next.phone = normalizePhone(next.phone);
+  return adminRequest(`users/${encodeURIComponent(userId)}`, "PUT", next);
 }
 
 async function adminDeleteUser(userId) {
@@ -105,4 +116,4 @@ async function adminDeleteUser(userId) {
   return adminRequest(`users/${encodeURIComponent(userId)}`, "DELETE");
 }
 
-module.exports = { normalizePhone, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
+module.exports = { normalizePhone, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
