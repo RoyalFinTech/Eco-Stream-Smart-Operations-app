@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoStream — Admin Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Design tokens shared with the Client Portal — see that file's CSS
+   header for rationale (palette, type pairing, signature gauge). */
+:root{
+  --green:#0B8F4D; --green-dark:#064D28; --green-deepest:#052E18;
+  --blue:#1565C0; --blue-light:#E8F2FC;
+  --sand:#F6F8F5; --sand-deep:#ECF1EC;
+  --charcoal:#16211B; --charcoal-soft:#3A4A42;
+  --amber:#F0932B; --amber-light:#FDF1E4;
+  --red:#D6534A; --red-light:#FBEAE8;
+  --purple:#7B4FC9; --purple-light:#EFE7FA;
+  --card:#FFFFFF; --border:#E1E8E3; --text:#182620; --text-muted:#5B6E64; --text-faint:#8FA298;
+  --glass:rgba(255,255,255,.66); --glass-border:rgba(255,255,255,.5);
+  --radius:18px; --radius-sm:12px;
+  --shadow-soft:0 8px 30px rgba(10,40,25,.08);
+  --shadow-lift:0 16px 44px rgba(10,40,25,.14);
+  --font-display:'Fraunces', Georgia, serif;
+  --font-body:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+html[data-theme="dark"]{
+  --sand:#0D1712; --sand-deep:#0A130F;
+  --card:#152019; --border:#25342B; --text:#EAF2EC; --text-muted:#9CB0A5; --text-faint:#5F756A;
+  --glass:rgba(21,32,25,.6); --glass-border:rgba(255,255,255,.08);
+  --blue-light:#132A44; --amber-light:#3A2A10; --red-light:#3A1414; --purple-light:#241a38;
+  --shadow-soft:0 8px 30px rgba(0,0,0,.35); --shadow-lift:0 20px 50px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{font-family:var(--font-body); background:var(--sand); color:var(--text); transition:background .25s ease,color .25s ease; -webkit-font-smoothing:antialiased;}
+h1,h2,h3,.display{font-family:var(--font-display);}
+button,input,select,textarea{font-family:inherit; font-size:14px;}
+button{cursor:pointer;}
+::-webkit-scrollbar{width:6px; height:6px;}
+::-webkit-scrollbar-thumb{background:var(--border); border-radius:10px;}
+:focus-visible{outline:2px solid var(--blue); outline-offset:2px;}
+table{border-collapse:collapse; width:100%;}
+th,td{text-align:left; padding:10px 12px; font-size:13px;}
+th{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); border-bottom:1.5px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:hover{background:var(--sand-deep);}
+
+@keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+.view{animation:fadeUp .35s ease both;}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 20px; border-radius:12px; border:1.5px solid transparent; font-weight:600; font-size:14px; transition:transform .12s ease, box-shadow .2s ease, background .2s ease, opacity .15s ease;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--green); color:#fff; box-shadow:0 6px 18px rgba(11,143,77,.28);}
+.btn-primary:hover{background:var(--green-dark);}
+.btn-outline{background:transparent; border-color:var(--border); color:var(--text);}
+.btn-outline:hover{border-color:var(--green); color:var(--green);}
+.btn-danger{background:var(--red); color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.12); color:#fff; border:none;}
+.btn-sm{padding:7px 14px; font-size:12.5px; border-radius:9px;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.55; cursor:not-allowed;}
+
+.field{margin-bottom:16px; text-align:left;}
+.field label{display:block; font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;}
+.field input, .field select, .field textarea{width:100%; padding:12px 14px; border-radius:11px; border:1.5px solid var(--border); background:var(--card); color:var(--text); transition:border-color .15s ease, box-shadow .15s ease;}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(11,143,77,.12);}
+.field textarea{min-height:96px; resize:vertical;}
+.field-hint{color:var(--text-faint); font-size:12px; margin-top:5px;}
+
+.glass{background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--glass-border);}
+.card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-soft); transition:transform .18s ease, box-shadow .18s ease;}
+.card-hover:hover{transform:translateY(-3px); box-shadow:var(--shadow-lift);}
+.card-pad{padding:20px;}
+
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; letter-spacing:.02em; padding:4px 11px; border-radius:99px; text-transform:uppercase;}
+.badge-green{background:#E4F5EC; color:var(--green-dark);}
+.badge-blue{background:var(--blue-light); color:var(--blue);}
+.badge-amber{background:var(--amber-light); color:var(--amber);}
+.badge-red{background:var(--red-light); color:var(--red);}
+.badge-purple{background:var(--purple-light); color:var(--purple);}
+.badge-grey{background:var(--sand-deep); color:var(--text-muted);}
+html[data-theme="dark"] .badge-green{background:#0F3323;}
+
+.gauge{position:relative; width:84px; height:84px; flex-shrink:0;}
+.gauge svg{transform:rotate(-90deg);}
+.gauge circle{fill:none; stroke-width:8;}
+.gauge .track{stroke:var(--sand-deep);}
+.gauge .fill{stroke:var(--blue); stroke-linecap:round; transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);}
+.gauge .fill.complete{stroke:var(--green);}
+.gauge-label{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.gauge-label b{font-size:16px; line-height:1;}
+.gauge-label span{font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em;}
+
+#toast-root{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:8px; align-items:center;}
+.toast{background:var(--charcoal); color:#fff; padding:12px 20px; border-radius:99px; font-size:13px; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25); animation:fadeUp .25s ease;}
+.toast.error{background:var(--red);}
+.toast.success{background:var(--green-dark);}
+
+.modal-overlay{position:fixed; inset:0; background:rgba(10,20,15,.55); backdrop-filter:blur(3px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .2s ease;}
+.modal{background:var(--card); border-radius:20px; width:100%; max-width:520px; max-height:88vh; overflow-y:auto; box-shadow:var(--shadow-lift); animation:fadeUp .25s ease;}
+.modal-header{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--border);}
+.modal-body{padding:22px;}
+.modal-footer{display:flex; gap:10px; padding:16px 22px; border-top:1px solid var(--border);}
+
+.auth-screen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:radial-gradient(circle at 20% 15%, var(--green-dark), var(--green-deepest) 60%);}
+.auth-box{width:100%; max-width:420px;}
+.auth-logo{display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:26px; color:#fff; text-align:center;}
+.auth-logo .mark{width:60px; height:60px; border-radius:16px; background:linear-gradient(135deg,var(--green),var(--blue)); display:flex; align-items:center; justify-content:center; font-size:28px;}
+.auth-logo h1{font-size:24px; letter-spacing:.02em;}
+.auth-logo p{font-size:12px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.12em; font-weight:700;}
+.auth-card{background:#fff; border-radius:20px; padding:26px; box-shadow:0 30px 70px rgba(0,0,0,.35);}
+.auth-foot{text-align:center; margin-top:16px; color:rgba(255,255,255,.5); font-size:12px;}
+.auth-link{background:none; border:none; text-decoration:underline; cursor:pointer; font-size:13px;}
+
+.app-shell{min-height:100vh; display:flex;}
+.sidebar{width:236px; background:var(--charcoal); color:#fff; display:flex; flex-direction:column; flex-shrink:0; position:fixed; top:0; bottom:0; left:0; z-index:200;}
+.sidebar .brand{display:flex; align-items:center; gap:10px; padding:20px 18px; border-bottom:1px solid rgba(255,255,255,.08);}
+.sidebar .brand .mark{width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,var(--green),var(--blue)); display:flex; align-items:center; justify-content:center; font-size:15px;}
+.sidebar .brand b{font-size:14px;}
+.sidebar .brand span{display:block; font-size:9px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.1em;}
+.nav-list{flex:1; overflow-y:auto; padding:10px 10px;}
+.nav-group-label{font-size:9.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.32); padding:14px 12px 6px;}
+.nav-item{display:flex; align-items:center; gap:11px; width:100%; padding:9.5px 12px; border-radius:10px; background:transparent; border:none; color:rgba(255,255,255,.62); font-size:13px; font-weight:600; margin-bottom:1px; text-align:left; transition:background .15s ease, color .15s ease;}
+.nav-item:hover{background:rgba(255,255,255,.06); color:#fff;}
+.nav-item.active{background:linear-gradient(135deg, var(--green), var(--green-dark)); color:#fff;}
+.nav-item .ic{width:16px; text-align:center; font-size:14px;}
+.sidebar-foot{padding:12px; border-top:1px solid rgba(255,255,255,.08);}
+
+.main{flex:1; margin-left:236px; display:flex; flex-direction:column; min-height:100vh;}
+.topbar{position:sticky; top:0; z-index:150; display:flex; align-items:center; gap:14px; padding:14px 28px; background:var(--glass); backdrop-filter:blur(14px); border-bottom:1px solid var(--border);}
+.topbar h2{font-size:18px;}
+.topbar .spacer{flex:1;}
+.icon-btn{width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:16px; position:relative; color:var(--text);}
+.icon-btn .dot{position:absolute; top:-2px; right:-2px; width:9px; height:9px; border-radius:50%; background:var(--red); border:2px solid var(--card);}
+.content{padding:26px 28px 90px; flex:1;}
+.hamburger{display:none;}
+
+@media (max-width: 960px){
+  .sidebar{transform:translateX(-100%); transition:transform .25s ease; width:250px;}
+  .sidebar.open{transform:translateX(0); box-shadow:20px 0 50px rgba(0,0,0,.3);}
+  .main{margin-left:0;}
+  .hamburger{display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--border); background:var(--card); font-size:18px;}
+  .sidebar-scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:190;}
+  .sidebar-scrim.show{display:block;}
+  .content{padding:18px 16px 100px;}
+  .topbar{padding:12px 16px;}
+}
+
+.grid{display:grid; gap:16px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-5{grid-template-columns:repeat(5,1fr);}
+@media (max-width:900px){ .grid-3,.grid-4,.grid-5{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:600px){ .grid-2,.grid-3,.grid-4,.grid-5{grid-template-columns:1fr;} }
+.stat-card{padding:18px; border-radius:16px; background:var(--card); border:1px solid var(--border);}
+.stat-card .num{font-family:var(--font-display); font-size:24px; font-weight:700;}
+.stat-card .lbl{font-size:11.5px; color:var(--text-muted); margin-top:4px;}
+.empty{text-align:center; padding:50px 20px; color:var(--text-muted);}
+.empty .ic{font-size:38px; margin-bottom:10px;}
+.section-title{font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin:22px 0 10px; display:flex; align-items:center; justify-content:space-between;}
+.divider{height:1px; background:var(--border); margin:16px 0;}
+.row{display:flex; align-items:center; gap:10px;}
+.row-between{display:flex; align-items:center; justify-content:space-between;}
+.chip{display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px; background:var(--sand-deep); font-size:12.5px; font-weight:600; border:1.5px solid transparent; cursor:pointer;}
+.chip.active{background:var(--green); color:#fff;}
+.list-item{display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border);}
+.list-item:last-child{border-bottom:none;}
+.avatar{width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--green),var(--blue)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0;}
+.hero-band{background:linear-gradient(120deg, var(--green-dark), var(--green) 60%, var(--blue)); border-radius:22px; padding:24px; color:#fff; position:relative; overflow:hidden;}
+.hero-band::after{content:""; position:absolute; right:-40px; bottom:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.14), transparent 70%);}
+.tag-input{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+.skeleton{background:linear-gradient(90deg, var(--sand-deep) 25%, var(--border) 37%, var(--sand-deep) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:8px;}
+@keyframes shimmer{0%{background-position:100% 0;} 100%{background-position:-100% 0;}}
+.bar-chart{display:flex; align-items:flex-end; gap:8px; height:140px; padding-top:10px;}
+.bar-chart .bar{flex:1; background:linear-gradient(180deg,var(--blue),var(--green)); border-radius:6px 6px 0 0; position:relative; min-height:3px; transition:height .6s cubic-bezier(.4,0,.2,1);}
+.bar-chart .bar span{position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--text-muted); white-space:nowrap;}
+.bar-chart .bar-label{position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--text-faint); white-space:nowrap;}
+.table-wrap{overflow-x:auto;}
+.action-btn{background:none; border:none; padding:6px 8px; border-radius:8px; font-size:14px; color:var(--text-muted);}
+.action-btn:hover{background:var(--sand-deep); color:var(--text);}
+.role-matrix td, .role-matrix th{text-align:center;}
+.role-matrix td:first-child, .role-matrix th:first-child{text-align:left;}
+.tabs-row{display:flex; gap:6px; margin-bottom:18px; overflow-x:auto;}
+</style>
+</head>
+<body>
+<div id="toast-root"></div>
+<div id="app"></div>
+<script>
+/* ============================================================
+   ECOSTREAM ADMIN OPERATIONS PORTAL — application logic
+   Same architecture as the Client Portal: vanilla JS, template-
+   string views, one delegated click/submit handler. Staff/admin
+   roles only — the API rejects client tokens on every route here.
+   ============================================================ */
+(function(){
+"use strict";
+
+const CONFIG = { apiBase: localStorage.getItem("eco_api_base") || "http://localhost:4000" };
+const state = {
+  token: localStorage.getItem("eco_token") || null,
+  refreshToken: localStorage.getItem("eco_refresh_token") || null,
+  user: JSON.parse(localStorage.getItem("eco_user") || "null"),
+  view: "dashboard",
+  authMode: "login",
+  cache: {},
+  chatPoll: null,
+  activeChatClient: null,
+};
+const app = document.getElementById("app");
+
+/* ---------- helpers (shared pattern with client portal) ---------- */
+function gmd(n){ return "GMD " + Number(n||0).toLocaleString(); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtDate(d){ if(!d) return "—"; try{ return new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }catch{ return d; } }
+function fmtDateTime(d){ try{ return new Date(d).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch{ return d; } }
+function initials(name){ return (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
+function toast(msg, type=""){
+  const root = document.getElementById("toast-root");
+  const t = document.createElement("div");
+  t.className = "toast " + type; t.textContent = msg;
+  root.appendChild(t);
+  setTimeout(()=>{ t.style.opacity="0"; t.style.transition="opacity .3s"; setTimeout(()=>t.remove(),300); }, 2600);
+}
+
+async function api(path, opts={}){
+  const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
+  if(state.token) headers["Authorization"] = "Bearer " + state.token;
+  let res;
+  try{ res = await fetch(CONFIG.apiBase + path, { ...opts, headers }); }
+  catch(e){ toast("Can't reach the EcoStream server at " + CONFIG.apiBase + ". Is it running?", "error"); throw e; }
+  let data = {};
+  try{ data = await res.json(); }catch{}
+
+  if(res.status === 401 && !opts._retried && state.refreshToken && path !== "/api/auth/refresh"){
+    const refreshed = await trySilentRefresh();
+    if(refreshed) return api(path, { ...opts, _retried: true });
+  }
+  if(res.status === 401){ logout(false); toast("Session expired — please log in again.", "error"); throw new Error("unauthorized"); }
+  if(res.status === 403 && path !== "/api/auth/login"){ toast(data.error || "You don't have permission for that.", "error"); throw new Error("forbidden"); }
+  if(!res.ok){ toast(data.error || "Something went wrong ("+res.status+")", "error"); throw new Error(data.error||String(res.status)); }
+  return data;
+}
+async function trySilentRefresh(){
+  try{
+    const res = await fetch(CONFIG.apiBase + "/api/auth/refresh", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: state.refreshToken }),
+    });
+    if(!res.ok) return false;
+    const data = await res.json();
+    state.token = data.token; state.refreshToken = data.refreshToken;
+    localStorage.setItem("eco_token", data.token);
+    localStorage.setItem("eco_refresh_token", data.refreshToken);
+    return true;
+  }catch{ return false; }
+}
+function setAuth(token, refreshToken, user){
+  state.token = token; state.refreshToken = refreshToken; state.user = user;
+  localStorage.setItem("eco_token", token);
+  if(refreshToken) localStorage.setItem("eco_refresh_token", refreshToken);
+  localStorage.setItem("eco_user", JSON.stringify(user));
+}
+function logout(redirect=true){
+  const refreshToken = state.refreshToken;
+  state.token=null; state.refreshToken=null; state.user=null;
+  localStorage.removeItem("eco_token"); localStorage.removeItem("eco_refresh_token"); localStorage.removeItem("eco_user");
+  if(state.chatPoll) clearInterval(state.chatPoll);
+  state.authMode="login";
+  if(refreshToken){
+    fetch(CONFIG.apiBase + "/api/auth/logout", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({refreshToken})
+    }).catch(()=>{});
+  }
+  if(redirect){ state.view="dashboard"; render(); }
+}
+function initTheme(){ document.documentElement.setAttribute("data-theme", localStorage.getItem("eco_theme")||"light"); }
+function toggleTheme(){
+  const next = document.documentElement.getAttribute("data-theme")==="dark" ? "light":"dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("eco_theme", next); render();
+}
+function gauge(depth,total,size=84){
+  const pct = total>0?Math.min(100,Math.round(depth/total*100)):0;
+  const r=36,c=2*Math.PI*r, offset=c-(pct/100)*c, complete=pct>=100;
+  return `<div class="gauge" style="width:${size}px;height:${size}px;"><svg width="${size}" height="${size}" viewBox="0 0 84 84">
+    <circle class="track" cx="42" cy="42" r="${r}"></circle>
+    <circle class="fill ${complete?'complete':''}" cx="42" cy="42" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"></circle>
+  </svg><div class="gauge-label"><b>${pct}%</b><span>${depth}/${total}m</span></div></div>`;
+}
+function statusBadge(status){
+  const map = {
+    pending:["badge-amber","Pending"], approved:["badge-blue","Approved"], ongoing:["badge-blue","Ongoing"],
+    "in-progress":["badge-blue","In Progress"], completed:["badge-green","Completed"], rejected:["badge-red","Rejected"],
+    paid:["badge-green","Paid"], open:["badge-amber","Open"], resolved:["badge-green","Resolved"],
+    suspended:["badge-red","Suspended"], active:["badge-green","Active"], maintenance:["badge-amber","Maintenance"],
+  };
+  const [cls,label] = map[status] || ["badge-grey", status||"—"];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function barChart(data, valueKey, labelKey, colorVar){
+  const max = Math.max(1, ...data.map(d=>d[valueKey]));
+  return `<div class="bar-chart">${data.map(d=>{
+    const h = Math.round(d[valueKey]/max*100);
+    return `<div class="bar" style="height:${h}%;"><span>${typeof d[valueKey]==="number"&&d[valueKey]>999?Math.round(d[valueKey]/1000)+"k":d[valueKey]}</span><div class="bar-label">${esc(d[labelKey])}</div></div>`;
+  }).join("")}</div>`;
+}
+
+/* ============================================================
+   AUTH VIEWS
+   ============================================================ */
+function renderAuth(){
+  app.innerHTML = `
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo"><div class="mark" style="background:#fff;padding:4px;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACVCAMAAADopgEBAAAA/1BMVEVfmWBfrcya2OSg2Zwpq9Vi0OMlZi7X6+AsoSUUZp6QspIkiblpz10PXlpXlLGJuNBIdkor2RAb0O9KzTiE1X1EtTnB6b0IXsAALwD9/v0CdsYCVgYStwMDZ7UNqAMaxQIFRwYpyAUm1gYFlwQoxvIKmdINpdYmuAcHdLkHh8kDagQFdQUFhwUDXKoBbMIPt+fP6O4u1/LR5tEWx+0AOgEc1AEOqOTI2cku5fmx2OStx67W8vWz5u6Rxtmz17IStdoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ389LAAAAQHRSTlP/////////////////////////////////////////////////////////////////////////////////////73leyQAAFGtJREFUeNrtnOd64sqyhpVASAhwmFl7E0QwSYANsrBhiL7/uzpV1d1StySiPc9eP05NsLENvHwVu1tYq//LTfv5h7RN0/Q875nMI4Ov2Pa/ARDYvMdep/P5CX9Ve3l5RtB/7P8doPnLA7YOwaTskYx959n7dYucPwVoes8dtM9O56XT68HfHMqXBBPUvE7MHwG0fz33CI//Tx+AMCulkPMFKR/R5/bfB/zHG7c6ifUYXwfDEBnzXM6Nh+YvM/qLgKbXQiP1YgF7PcIkQKbjOcjPTo8SKLJ/DDA6Cud6BNfpyBoyWKYkaHSSTaX8fOmNvR8BjExP44DmuMWtkwbkiLzEfJ7Cog/8Zi8vILWbK533+PnMHijSWomdIoSsfpEo0owUh/QSep79/Rj8x8MqwfnMUku1lI87PBQhnXs9JVV67BufGKUYgljYvej7SWJ6WCQEn9dW8ca9To71RL589pBLsJFBmXlBPIhgzfx+FiPeI7iC82kpvufnXtrPCSCzT6FbpzV+xP5seuyHWt73ywzHg2ZArzUqJXzwWfs5rjapUOz1krpDyo3Hz8BGjygkL5nfLtQR+OKRhY/gazNC/NAumZAvnTxCNW1aCGezVCuJH2159rc7ifn48vgi8dnA12/H5tlyuTnBiHDHiJUpbZy8krH57VZHuYFwLy8dFixaH/j6fWLsl451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" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div><h1>EcoStream</h1><p>Admin Operations</p></div>
+      <div class="auth-card">
+        <form data-form="login">
+          <div class="field"><label>Email</label><input type="email" name="email" required placeholder="you@ecostream.gm"></div>
+          <div class="field"><label>Password</label><input type="password" name="password" required placeholder="••••••••"></div>
+          <button class="btn btn-primary btn-block" type="submit">Sign In</button>
+          <div class="divider"></div>
+          <div class="field-hint" style="text-align:center;">Use your EcoStream account credentials.</div>
+        </form>
+      </div>
+      <div class="auth-foot">Staff &amp; administrators only · Client accounts use the Client Portal</div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+const NAV = [
+  ["OVERVIEW", null],
+  ["dashboard","📊","Dashboard"],
+  ["OPERATIONS", null],
+  ["clients","🧑‍🤝‍🧑","Clients"],
+  ["projects","🗺️","Projects"],
+  ["PEOPLE & ASSETS", null],
+  ["staff","👷","Staff"],
+  ["equipment","🚜","Equipment"],
+  ["FINANCE", null],
+  ["finance","💰","Finance & Reports"],
+  ["ENGAGEMENT", null],
+  ["tickets","🎫","Support Tickets"],
+  ["chat","💬","Client Chat"],
+  ["notifications","🔔","Notifications"],
+  ["SYSTEM", null],
+  ["cms","📝","Site Content"],
+  ["roles","🔐","Roles & Permissions"],
+  ["audit","📜","Audit Logs"],
+  ["settings","⚙️","Settings"],
+];
+
+function renderShell(innerHtml, title){
+  const theme = document.documentElement.getAttribute("data-theme");
+  app.innerHTML = `
+  <div class="app-shell">
+    <div class="sidebar-scrim" data-action="close-sidebar"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="mark" style="background:#fff;padding:4px;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACVCAMAAADopgEBAAAA/1BMVEVfmWBfrcya2OSg2Zwpq9Vi0OMlZi7X6+AsoSUUZp6QspIkiblpz10PXlpXlLGJuNBIdkor2RAb0O9KzTiE1X1EtTnB6b0IXsAALwD9/v0CdsYCVgYStwMDZ7UNqAMaxQIFRwYpyAUm1gYFlwQoxvIKmdINpdYmuAcHdLkHh8kDagQFdQUFhwUDXKoBbMIPt+fP6O4u1/LR5tEWx+0AOgEc1AEOqOTI2cku5fmx2OStx67W8vWz5u6Rxtmz17IStdoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ389LAAAAQHRSTlP/////////////////////////////////////////////////////////////////////////////////////73leyQAAFGtJREFUeNrtnOd64sqyhpVASAhwmFl7E0QwSYANsrBhiL7/uzpV1d1StySiPc9eP05NsLENvHwVu1tYq//LTfv5h7RN0/Q875nMI4Ov2Pa/ARDYvMdep/P5CX9Ve3l5RtB/7P8doPnLA7YOwaTskYx959n7dYucPwVoes8dtM9O56XT68HfHMqXBBPUvE7MHwG0fz33CI//Tx+AMCulkPMFKR/R5/bfB/zHG7c6ifUYXwfDEBnzXM6Nh+YvM/qLgKbXQiP1YgF7PcIkQKbjOcjPTo8SKLJ/DDA6Cud6BNfpyBoyWKYkaHSSTaX8fOmNvR8BjExP44DmuMWtkwbkiLzEfJ7Cog/8Zi8vILWbK533+PnMHijSWomdIoSsfpEo0owUh/QSep79/Rj8x8MqwfnMUku1lI87PBQhnXs9JVV67BufGKUYgljYvej7SWJ6WCQEn9dW8ca9To71RL589pBLsJFBmXlBPIhgzfx+FiPeI7iC82kpvufnXtrPCSCzT6FbpzV+xP5seuyHWt73ywzHg2ZArzUqJXzwWfs5rjapUOz1krpDyo3Hz8BGjygkL5nfLtQR+OKRhY/gazNC/NAumZAvnTxCNW1aCGezVCuJH2159rc7ifn48vgi8dnA12/H5tlyuTnBiHDHiJUpbZy8krH57VZHuYFwLy8dFixaH/j6fWLsl451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" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div><div><b>EcoStream</b><span>Admin Operations</span></div></div>
+      <nav class="nav-list">
+        ${NAV.map(([id,ic,label])=> ic===null ? `<div class="nav-group-label">${id}</div>` :
+          `<button class="nav-item ${state.view===id?'active':''}" data-action="nav" data-view="${id}"><span class="ic">${ic}</span>${label}</button>`).join("")}
+      </nav>
+      <div class="sidebar-foot"><button class="btn btn-ghost btn-block" data-action="logout">🚪 Sign Out</button></div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <button class="hamburger" data-action="toggle-sidebar">☰</button>
+        <h2>${title}</h2>
+        <div class="spacer"></div>
+        <button class="icon-btn" data-action="toggle-theme" title="Toggle dark mode">${theme==="dark"?"☀️":"🌙"}</button>
+        <button class="icon-btn" data-action="nav" data-view="notifications" title="Notifications">🔔${state.cache.unreadCount?'<span class="dot"></span>':''}</button>
+        <div class="avatar">${initials(state.user.name)}</div>
+      </div>
+      <div class="content view" id="view-root">${innerHtml}</div>
+    </div>
+  </div>`;
+}
+function loadingSkeleton(){ return `<div class="grid grid-4">${[1,2,3,4].map(()=>`<div class="skeleton" style="height:90px;"></div>`).join("")}</div>`; }
+function errorState(msg){ return `<div class="empty"><div class="ic">⚠️</div>${esc(msg)}<br><button class="btn btn-outline" style="margin-top:14px;" data-action="reload">Try again</button></div>`; }
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+async function loadDashboard(){
+  renderShell(loadingSkeleton(), "Dashboard");
+  try{
+    const [stats, notifRes, auditRes] = await Promise.all([
+      api("/api/dashboard/stats"), api("/api/notifications"), api("/api/audit-logs").catch(()=>({logs:[]}))
+    ]);
+    state.cache.unreadCount = notifRes.notifications.filter(n=>!n.read && !n.userId).length;
+    renderShell(dashboardHtml(stats, auditRes.logs.slice(0,6)), "Dashboard");
+  }catch(e){ renderShell(errorState("Couldn't load dashboard stats."), "Dashboard"); }
+}
+function dashboardHtml(s, recentActivity=[]){
+  const ACTIVITY_ICON = { login:"🔑", register:"🆕", login_failed:"⚠️", account_locked:"🔒",
+    client_status_change:"🧑‍🤝‍🧑", client_deleted:"🗑️", cms_updated:"📝", password_reset:"🔁", email_verified:"✅" };
+  return `
+  <div class="hero-band" style="margin-bottom:20px;">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;opacity:.85;font-weight:700;">Company Overview</div>
+    <h1 class="display" style="font-size:26px;margin:4px 0 6px;">${gmd(s.revenue)} in revenue</h1>
+    <div style="font-size:13px;opacity:.85;">Profit to date: ${gmd(s.profit)} · Expenses: ${gmd(s.totalExpenses)}</div>
+  </div>
+  <div class="grid grid-4" style="margin-bottom:8px;">
+    <div class="stat-card"><div class="num" style="color:var(--blue);">${s.projects.active}</div><div class="lbl">Active Projects</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--amber);">${s.projects.pending}</div><div class="lbl">Pending Projects</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--green);">${s.projects.completed}</div><div class="lbl">Completed Projects</div></div>
+    <div class="stat-card"><div class="num">${s.projects.total}</div><div class="lbl">Total Projects</div></div>
+  </div>
+  <div class="grid grid-4">
+    <div class="stat-card"><div class="num">${s.clients.total}</div><div class="lbl">Total Clients</div></div>
+    <div class="stat-card"><div class="num">${s.staff.total}</div><div class="lbl">Staff Members</div></div>
+    <div class="stat-card"><div class="num">${s.equipment.active}/${s.equipment.total}</div><div class="lbl">Equipment Active</div></div>
+    <div class="stat-card"><div class="num" style="color:${s.tickets.open?'var(--amber)':'inherit'};">${s.tickets.open}</div><div class="lbl">Open Tickets</div></div>
+  </div>
+  <div class="section-title">Project Pipeline</div>
+  <div class="card card-pad">
+    ${barChart([{l:"Pending",v:s.projects.pending},{l:"Active",v:s.projects.active},{l:"Completed",v:s.projects.completed}].map(x=>({v:x.v,l:x.l})),"v","l")}
+  </div>
+  <div class="section-title">Recent Activity<button class="btn btn-outline btn-sm" data-action="nav" data-view="audit">View all →</button></div>
+  <div class="card">
+    ${!recentActivity.length ? `<div class="empty" style="padding:24px;">No activity recorded yet.</div>` :
+    recentActivity.map(l=>`<div class="list-item" style="padding:12px 18px;">
+      <div style="font-size:18px;">${ACTIVITY_ICON[l.action]||"•"}</div>
+      <div style="flex:1;"><b style="font-size:12.5px;">${esc(l.actorName)}</b> <span style="font-size:12.5px;color:var(--text-muted);">${esc(l.action.replace(/_/g," "))}</span>
+      <div style="font-size:11px;color:var(--text-faint);">${fmtDateTime(l.date)}</div></div>
+    </div>`).join("")}
+  </div>`;
+}
+
+/* ============================================================
+   CLIENTS
+   ============================================================ */
+async function loadClients(search=""){
+  renderShell(loadingSkeleton(), "Clients");
+  try{
+    const qs = search ? "?search="+encodeURIComponent(search) : "";
+    const {clients} = await api("/api/clients"+qs);
+    state.cache.clients = clients;
+    renderShell(clientsHtml(clients, search), "Clients");
+    const input = document.getElementById("client-search");
+    if(input) input.focus({preventScroll:true});
+  }
+  catch(e){ renderShell(errorState("Couldn't load clients."), "Clients"); }
+}
+function clientsHtml(clients, search=""){
+  return `
+  <div class="row-between" style="margin-bottom:12px;gap:10px;">
+    <input id="client-search" value="${esc(search)}" placeholder="🔍 Search name, email, phone..." style="flex:1;max-width:320px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);">
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" data-action="export-clients-csv">⬇ Export CSV</button>
+      <button class="btn btn-primary btn-sm" data-action="new-client">+ Add Client</button>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${clients.length} client${clients.length!==1?'s':''}${search?` matching "${esc(search)}"`:""}</div>
+  ${!clients.length ? `<div class="card empty"><div class="ic">🧑‍🤝‍🧑</div>No clients${search?" match that search":" yet"}.</div>` :
+  `<div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Contact</th><th>Address</th><th>Status</th><th></th></tr></thead>
+    <tbody>${clients.map(c=>`
+      <tr>
+        <td><div class="row"><div class="avatar" style="width:30px;height:30px;font-size:11px;">${initials(c.name)}</div><b>${esc(c.name)}</b></div></td>
+        <td>${esc(c.phone||"—")}<br><span style="color:var(--text-faint);font-size:11.5px;">${esc(c.email||"")}</span></td>
+        <td>${esc(c.address||"—")}</td>
+        <td>${statusBadge(c.status||"active")}</td>
+        <td>
+          <button class="action-btn" data-action="edit-client" data-id="${c.id}" title="Edit">✏️</button>
+          ${c.status==="suspended"
+            ? `<button class="action-btn" data-action="approve-client" data-id="${c.id}" title="Reactivate">✅</button>`
+            : `<button class="action-btn" data-action="suspend-client" data-id="${c.id}" title="Suspend">⛔</button>`}
+          <button class="action-btn" data-action="delete-client" data-id="${c.id}" title="Delete">🗑️</button>
+        </td>
+      </tr>`).join("")}</tbody>
+  </table></div></div>`}`;
+}
+function csvEscape(v){ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function downloadCsv(filename, rows){
+  const csv = rows.map(r=>r.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+function newClientModal(){
+  showModal("Add Client", `
+    <form data-form="new-client">
+      <div class="field"><label>Name *</label><input name="name" required></div>
+      <div class="field"><label>Phone *</label><input name="phone" required></div>
+      <div class="field"><label>Email</label><input type="email" name="email"></div>
+      <div class="field"><label>Address</label><input name="address"></div>
+      <button class="btn btn-primary btn-block" type="submit">Create Client</button>
+    </form>`, "");
+}
+function editClientModal(id){
+  const c = state.cache.clients.find(x=>x.id===id); if(!c) return;
+  showModal("Edit Client", `
+    <form data-form="edit-client" data-id="${id}">
+      <div class="field"><label>Name</label><input name="name" value="${esc(c.name)}" required></div>
+      <div class="field"><label>Phone</label><input name="phone" value="${esc(c.phone||'')}" required></div>
+      <div class="field"><label>Email</label><input type="email" name="email" value="${esc(c.email||'')}"></div>
+      <div class="field"><label>Address</label><input name="address" value="${esc(c.address||'')}"></div>
+      <button class="btn btn-primary btn-block" type="submit">Save Changes</button>
+    </form>`, "");
+}
+
+/* ============================================================
+   PROJECTS (tabs: Active Projects | Booking Requests)
+   ============================================================ */
+async function loadProjects(tab="projects"){
+  renderShell(loadingSkeleton(), "Projects");
+  try{
+    const [{projects}, {bookings}, {clients}, {staff}] = await Promise.all([
+      api("/api/projects"), api("/api/bookings"), api("/api/clients"), api("/api/staff")
+    ]);
+    state.cache = {...state.cache, projects, bookings, clients, staff};
+    renderShell(projectsHtml(tab), "Projects");
+  }catch(e){ renderShell(errorState("Couldn't load projects."), "Projects"); }
+}
+function projectsHtml(tab){
+  const {projects=[], bookings=[], clients=[]} = state.cache;
+  const clientName = id => (clients.find(c=>c.id===id)||{}).name || "Unknown";
+  return `
+  <div class="tabs-row">
+    <button class="chip ${tab==='projects'?'active':''}" data-action="proj-tab" data-tab="projects">Active Projects (${projects.length})</button>
+    <button class="chip ${tab==='bookings'?'active':''}" data-action="proj-tab" data-tab="bookings">Booking Requests (${bookings.filter(b=>b.status==='pending').length} pending)</button>
+  </div>
+  <div id="proj-tab-content">
+  ${tab==="projects" ? (
+    !projects.length ? `<div class="card empty"><div class="ic">🗺️</div>No projects yet — approve a booking request to create one.</div>` :
+    `<div class="grid grid-2">${projects.map(p=>`
+      <div class="card card-pad card-hover" style="cursor:pointer;" data-action="open-project" data-id="${p.id}">
+        <div class="row-between" style="margin-bottom:10px;"><b>📍 ${esc(p.location)}</b>${statusBadge(p.status)}</div>
+        <div class="row" style="gap:16px;">${gauge(p.depth,p.totalDepth,68)}
+          <div style="font-size:12px;color:var(--text-muted);">
+            <div>Client: ${esc(clientName(p.clientId))}</div>
+            <div>Started ${fmtDate(p.startDate)}</div>
+          </div>
+        </div>
+      </div>`).join("")}</div>`
+  ) : (
+    !bookings.length ? `<div class="card empty"><div class="ic">📋</div>No booking requests yet.</div>` :
+    `<div class="card">${bookings.map(b=>`
+      <div class="list-item" style="padding:14px 18px;">
+        <div class="avatar" style="background:var(--sand-deep);color:var(--text-muted);">${b.requestType==='site-survey'?'📐':'💧'}</div>
+        <div style="flex:1;">
+          <div class="row-between"><b>${esc(clientName(b.clientId))}</b>${statusBadge(b.status)}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${esc(b.drillingLocation)} · ${esc(b.package)} · ${fmtDate(b.submittedAt)}</div>
+        </div>
+        ${b.status==="pending" ? `
+        <button class="btn btn-outline btn-sm" data-action="booking-status" data-id="${b.id}" data-status="approved">Approve</button>
+        <button class="btn btn-outline btn-sm" data-action="booking-status" data-id="${b.id}" data-status="rejected">Reject</button>
+        ` : b.status==="approved" ? `<button class="btn btn-primary btn-sm" data-action="create-project-from-booking" data-id="${b.id}">Create Project</button>` : ""}
+      </div>`).join("")}</div>`
+  )}
+  </div>`;
+}
+async function openProjectDetail(id){
+  const p = state.cache.projects.find(x=>x.id===id); if(!p) return;
+  let timeline = [];
+  try{ const t = await api("/api/projects/timeline/"+id); timeline = t.timeline; }catch{}
+  const staffOptions = (state.cache.staff||[]).map(s=>`<option value="${s.id}" ${s.id===p.assignedEngineerId?'selected':''}>${esc(s.name)}</option>`).join("");
+  showModal(`📍 ${esc(p.location)}`, `
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;">${gauge(p.depth,p.totalDepth,80)}<div>${statusBadge(p.status)}</div></div>
+    <form data-form="update-project" data-id="${id}">
+      <div class="grid grid-2">
+        <div class="field"><label>Status</label><select name="status"><option value="pending" ${p.status==='pending'?'selected':''}>Pending</option><option value="ongoing" ${p.status==='ongoing'?'selected':''}>Ongoing</option><option value="completed" ${p.status==='completed'?'selected':''}>Completed</option></select></div>
+        <div class="field"><label>Assigned Engineer</label><select name="assignedEngineerId"><option value="">— Unassigned —</option>${staffOptions}</select></div>
+        <div class="field"><label>Depth (m)</label><input type="number" name="depth" value="${p.depth}"></div>
+        <div class="field"><label>Total Depth (m)</label><input type="number" name="totalDepth" value="${p.totalDepth}"></div>
+        <div class="field"><label>Water Yield (m³/h)</label><input type="number" step="0.1" name="waterYield" value="${p.waterYield}"></div>
+        <div class="field"><label>Soil Type</label><input name="soilType" value="${esc(p.soilType||'')}"></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes">${esc(p.notes||'')}</textarea></div>
+      <button class="btn btn-primary btn-block" type="submit">Save Updates</button>
+    </form>
+    <div class="section-title">Add Timeline Event</div>
+    <form data-form="add-timeline" data-id="${id}" class="row">
+      <input name="label" placeholder="e.g. Casing installed" style="flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);" required>
+      <button class="btn btn-outline btn-sm" type="submit">Add</button>
+    </form>
+    <div class="section-title" style="margin-top:16px;">Timeline</div>
+    <div style="max-height:180px;overflow-y:auto;">
+      ${timeline.length ? timeline.map(t=>`<div class="list-item"><div class="avatar" style="width:26px;height:26px;font-size:9px;background:var(--sand-deep);color:var(--text-muted);">●</div><div><div style="font-size:12.5px;font-weight:600;">${esc(t.label)}</div><div style="font-size:10.5px;color:var(--text-faint);">${fmtDateTime(t.date)}</div></div></div>`).join("") : `<div class="field-hint">No events yet.</div>`}
+    </div>
+  `, `<button class="btn btn-outline btn-block" data-action="close-modal">Close</button>`);
+}
+
+/* ============================================================
+   STAFF
+   ============================================================ */
+async function loadStaff(){
+  renderShell(loadingSkeleton(), "Staff");
+  try{ const {staff} = await api("/api/staff"); state.cache.staff = staff; renderShell(staffHtml(staff), "Staff"); }
+  catch(e){ renderShell(errorState("Couldn't load staff."), "Staff"); }
+}
+const ROLE_LABELS = { engineer:"Engineer", technician:"Technician", driver:"Driver", administrator:"Administrator" };
+function staffHtml(staff){
+  return `
+  <div class="row-between" style="margin-bottom:16px;">
+    <div style="font-size:13px;color:var(--text-muted);">${staff.length} staff member${staff.length!==1?'s':''}</div>
+    <button class="btn btn-primary btn-sm" data-action="new-staff">+ Add Staff</button>
+  </div>
+  ${!staff.length ? `<div class="card empty"><div class="ic">👷</div>No staff members yet.</div>` :
+  `<div class="grid grid-3">${staff.map(s=>`
+    <div class="card card-pad">
+      <div class="row" style="margin-bottom:10px;"><div class="avatar">${initials(s.name)}</div><div><b style="font-size:13.5px;">${esc(s.name)}</b><div style="font-size:11.5px;color:var(--text-muted);">${ROLE_LABELS[s.staffRole]||s.staffRole}</div></div></div>
+      <div style="font-size:12px;color:var(--text-muted);">${esc(s.email)}<br>${esc(s.phone)}</div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-outline btn-sm" data-action="edit-staff" data-id="${s.id}">Edit</button>
+        <button class="btn btn-outline btn-sm" data-action="delete-staff" data-id="${s.id}">Remove</button>
+      </div>
+    </div>`).join("")}</div>`}`;
+}
+function newStaffModal(){
+  showModal("Add Staff Member", `
+    <form data-form="new-staff">
+      <div class="field"><label>Name *</label><input name="name" required></div>
+      <div class="field"><label>Email *</label><input type="email" name="email" required></div>
+      <div class="field"><label>Phone *</label><input name="phone" required></div>
+      <div class="field"><label>Role *</label><select name="staffRole"><option value="engineer">Engineer</option><option value="technician">Technician</option><option value="driver">Driver</option><option value="administrator">Administrator</option></select></div>
+      <button class="btn btn-primary btn-block" type="submit">Create Staff Account</button>
+    </form>`, "");
+}
+function editStaffModal(id){
+  const s = state.cache.staff.find(x=>x.id===id); if(!s) return;
+  showModal("Edit Staff Member", `
+    <form data-form="edit-staff" data-id="${id}">
+      <div class="field"><label>Name</label><input name="name" value="${esc(s.name)}" required></div>
+      <div class="field"><label>Phone</label><input name="phone" value="${esc(s.phone)}" required></div>
+      <div class="field"><label>Role</label><select name="staffRole">${Object.entries(ROLE_LABELS).map(([k,l])=>`<option value="${k}" ${s.staffRole===k?'selected':''}>${l}</option>`).join("")}</select></div>
+      <button class="btn btn-primary btn-block" type="submit">Save Changes</button>
+    </form>`, "");
+}
+
+/* ============================================================
+   EQUIPMENT (tabs: Equipment | Expenses)
+   ============================================================ */
+async function loadEquipment(tab="equipment"){
+  renderShell(loadingSkeleton(), "Equipment");
+  try{
+    const [{equipment}, {expenses}] = await Promise.all([ api("/api/equipment"), api("/api/expenses") ]);
+    state.cache.equipment = equipment; state.cache.expenses = expenses;
+    renderShell(equipmentHtml(tab), "Equipment");
+  }catch(e){ renderShell(errorState("Couldn't load equipment."), "Equipment"); }
+}
+function equipmentHtml(tab){
+  const {equipment=[], expenses=[]} = state.cache;
+  return `
+  <div class="tabs-row">
+    <button class="chip ${tab==='equipment'?'active':''}" data-action="equip-tab" data-tab="equipment">Equipment (${equipment.length})</button>
+    <button class="chip ${tab==='expenses'?'active':''}" data-action="equip-tab" data-tab="expenses">Fuel & Maintenance Logs</button>
+  </div>
+  ${tab==="equipment" ? `
+  <div class="row-between" style="margin-bottom:14px;"><span></span><button class="btn btn-primary btn-sm" data-action="new-equipment">+ Add Equipment</button></div>
+  ${!equipment.length ? `<div class="card empty"><div class="ic">🚜</div>No equipment recorded yet.</div>` :
+  `<div class="grid grid-3">${equipment.map(e=>`
+    <div class="card card-pad">
+      <div class="row-between" style="margin-bottom:8px;"><b>${e.type==='Vehicle'?'🚚':'⚙️'} ${esc(e.name)}</b>${statusBadge(e.status)}</div>
+      <div style="font-size:12px;color:var(--text-muted);">Type: ${esc(e.type)}<br>Last maintenance: ${fmtDate(e.lastMaintenance)}</div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-outline btn-sm" data-action="mark-maintenance" data-id="${e.id}">🔧 Log Maintenance</button>
+        <button class="btn btn-outline btn-sm" data-action="delete-equipment" data-id="${e.id}">Remove</button>
+      </div>
+    </div>`).join("")}</div>`}` : `
+  <div class="row-between" style="margin-bottom:14px;"><span></span><button class="btn btn-primary btn-sm" data-action="new-expense">+ Log Expense</button></div>
+  ${!expenses.length ? `<div class="card empty"><div class="ic">⛽</div>No expenses logged yet.</div>` :
+  `<div class="card"><div class="table-wrap"><table><thead><tr><th>Category</th><th>Amount</th><th>Note</th><th>Date</th></tr></thead>
+  <tbody>${expenses.map(x=>`<tr><td>${esc(x.category)}</td><td>${gmd(x.amount)}</td><td>${esc(x.note||"—")}</td><td>${fmtDate(x.date)}</td></tr>`).join("")}</tbody></table></div></div>`}`}
+  `;
+}
+function newEquipmentModal(){
+  showModal("Add Equipment", `<form data-form="new-equipment">
+    <div class="field"><label>Type *</label><select name="type"><option value="Drilling Rig">Drilling Rig</option><option value="Vehicle">Vehicle</option><option value="Pump">Pump</option><option value="Other">Other</option></select></div>
+    <div class="field"><label>Name *</label><input name="name" required placeholder="e.g. Rig Beta"></div>
+    <button class="btn btn-primary btn-block" type="submit">Add Equipment</button>
+  </form>`, "");
+}
+function newExpenseModal(){
+  showModal("Log Expense", `<form data-form="new-expense">
+    <div class="field"><label>Category *</label><select name="category"><option value="Fuel">Fuel</option><option value="Maintenance">Maintenance</option><option value="Parts">Parts</option><option value="Other">Other</option></select></div>
+    <div class="field"><label>Amount (GMD) *</label><input type="number" name="amount" min="1" required></div>
+    <div class="field"><label>Note</label><input name="note" placeholder="e.g. Rig Alpha refuel"></div>
+    <button class="btn btn-primary btn-block" type="submit">Log Expense</button>
+  </form>`, "");
+}
+
+/* ============================================================
+   FINANCE (tabs: Invoices/Payments | Reports)
+   ============================================================ */
+async function loadFinance(tab="invoices", range="monthly"){
+  renderShell(loadingSkeleton(), "Finance & Reports");
+  try{
+    const [{invoices}, {clients}] = await Promise.all([ api("/api/invoices"), api("/api/clients") ]);
+    state.cache.invoices = invoices; state.cache.clients = clients;
+    let report = null;
+    if(tab==="reports"){ report = await api("/api/reports?range="+range); }
+    renderShell(financeHtml(tab, range, report), "Finance & Reports");
+  }catch(e){ renderShell(errorState("Couldn't load finance data."), "Finance & Reports"); }
+}
+function financeHtml(tab, range, report){
+  const {invoices=[], clients=[]} = state.cache;
+  const clientName = id => (clients.find(c=>c.id===id)||{}).name || "Unknown";
+  const revenue = invoices.filter(i=>i.status==="paid").reduce((s,i)=>s+i.amount,0);
+  const outstanding = invoices.filter(i=>i.status!=="paid").reduce((s,i)=>s+i.amount,0);
+  return `
+  <div class="tabs-row">
+    <button class="chip ${tab==='invoices'?'active':''}" data-action="fin-tab" data-tab="invoices">Invoices & Payments</button>
+    <button class="chip ${tab==='reports'?'active':''}" data-action="fin-tab" data-tab="reports">Reports</button>
+  </div>
+  ${tab==="invoices" ? `
+  <div class="grid grid-2" style="margin-bottom:16px;">
+    <div class="stat-card"><div class="num" style="color:var(--green);">${gmd(revenue)}</div><div class="lbl">Total Revenue</div></div>
+    <div class="stat-card"><div class="num" style="color:${outstanding?'var(--amber)':'inherit'};">${gmd(outstanding)}</div><div class="lbl">Outstanding</div></div>
+  </div>
+  <div class="row-between" style="margin-bottom:14px;"><button class="btn btn-outline btn-sm" data-action="export-invoices-csv">⬇ Export CSV</button><button class="btn btn-primary btn-sm" data-action="new-invoice">+ Record Payment</button></div>
+  ${!invoices.length ? `<div class="card empty"><div class="ic">🧾</div>No invoices yet.</div>` :
+  `<div class="card"><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+  <tbody>${invoices.map(i=>`<tr><td>${i.invoiceNumber}</td><td>${esc(clientName(i.clientId))}</td><td>${gmd(i.amount)}</td><td>${esc(i.method)}</td><td>${statusBadge(i.status)}</td><td>${fmtDate(i.date)}</td></tr>`).join("")}</tbody></table></div></div>`}
+  ` : `
+  <div class="tag-input">
+    ${["daily","weekly","monthly","annual"].map(r=>`<button class="chip ${range===r?'active':''}" data-action="report-range" data-range="${r}">${r[0].toUpperCase()+r.slice(1)}</button>`).join("")}
+  </div>
+  ${report ? `
+  <div class="grid grid-4">
+    <div class="stat-card"><div class="num" style="color:var(--green);">${gmd(report.revenue)}</div><div class="lbl">Revenue</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--red);">${gmd(report.expenses)}</div><div class="lbl">Expenses</div></div>
+    <div class="stat-card"><div class="num">${gmd(report.profit)}</div><div class="lbl">Profit</div></div>
+    <div class="stat-card"><div class="num">${report.newProjects}</div><div class="lbl">New Projects</div></div>
+  </div>
+  <div class="field-hint" style="margin-top:10px;">Period starting ${fmtDate(report.periodStart)} · ${report.newBookings} new booking(s) · ${report.paymentsCount} payment(s)</div>
+  ` : ""}
+  `}`;
+}
+function newInvoiceModal(){
+  const clientOptions = (state.cache.clients||[]).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  showModal("Record Payment / Invoice", `<form data-form="new-invoice">
+    <div class="field"><label>Client *</label><select name="clientId" required>${clientOptions}</select></div>
+    <div class="field"><label>Amount (GMD) *</label><input type="number" name="amount" min="1" required></div>
+    <div class="field"><label>Method *</label><select name="method"><option>Mobile Money</option><option>Bank Transfer</option><option>Cash</option></select></div>
+    <button class="btn btn-primary btn-block" type="submit">Record Payment</button>
+  </form>`, "");
+}
+
+/* ============================================================
+   SUPPORT TICKETS
+   ============================================================ */
+async function loadTickets(){
+  renderShell(loadingSkeleton(), "Support Tickets");
+  try{ const {tickets} = await api("/api/tickets"); state.cache.tickets = tickets; renderShell(ticketsHtml(tickets), "Support Tickets"); }
+  catch(e){ renderShell(errorState("Couldn't load tickets."), "Support Tickets"); }
+}
+function ticketsHtml(tickets){
+  if(!tickets.length) return `<div class="card empty"><div class="ic">🎫</div>No support tickets.</div>`;
+  return `<div class="card">${tickets.map(t=>`
+    <div class="list-item" style="padding:14px 18px;cursor:pointer;" data-action="open-ticket" data-id="${t.id}">
+      <div class="avatar" style="background:var(--sand-deep);color:var(--text-muted);">🎫</div>
+      <div style="flex:1;"><div class="row-between"><b>${esc(t.subject)}</b>${statusBadge(t.status)}</div>
+      <div style="font-size:12px;color:var(--text-muted);">${t.ticketNumber} · ${esc(t.category)} · ${esc(t.location||"—")}</div></div>
+    </div>`).join("")}</div>`;
+}
+function openTicket(id){
+  const t = state.cache.tickets.find(x=>x.id===id); if(!t) return;
+  showModal(t.subject, `
+    <div class="row" style="margin-bottom:12px;">${statusBadge(t.status)}<span class="badge badge-grey">${t.category}</span><span class="badge badge-purple">${t.priority}</span></div>
+    <div style="font-size:13.5px;background:var(--sand-deep);padding:12px;border-radius:10px;margin-bottom:16px;">${esc(t.description)}</div>
+    ${(t.replies||[]).map(r=>`<div style="background:var(--blue-light);padding:10px 12px;border-radius:10px;margin-bottom:8px;"><b style="font-size:12px;color:var(--blue);">${esc(r.author)}</b><div style="font-size:13px;margin-top:3px;">${esc(r.message)}</div></div>`).join("")}
+    <form data-form="ticket-reply" data-id="${id}">
+      <div class="field"><label>Reply</label><textarea name="reply" placeholder="Type a response…"></textarea></div>
+      <div class="field"><label>Status</label><select name="status"><option value="open" ${t.status==='open'?'selected':''}>Open</option><option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option><option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option></select></div>
+      <button class="btn btn-primary btn-block" type="submit">Update Ticket</button>
+    </form>
+  `, `<button class="btn btn-outline btn-block" data-action="close-modal">Close</button>`);
+}
+
+/* ============================================================
+   CLIENT CHAT
+   ============================================================ */
+async function loadChat(){
+  renderShell(`<div id="chat-container">${loadingSkeleton()}</div>`, "Client Chat");
+  await refreshChatList();
+  state.chatPoll = setInterval(()=>{ if(state.activeChatClient) refreshChatThread(state.activeChatClient); refreshChatList(true); }, 4000);
+}
+async function refreshChatList(silent){
+  try{
+    const {conversations} = await api("/api/chat/conversations");
+    state.cache.conversations = conversations;
+    if(!silent){
+      const el = document.getElementById("chat-container");
+      if(el) el.innerHTML = chatShellHtml(conversations);
+    }
+  }catch(e){}
+}
+function chatShellHtml(conversations){
+  return `<div class="grid grid-2" style="align-items:start;">
+    <div class="card" style="max-height:560px;overflow-y:auto;">
+      ${!conversations.length ? `<div class="empty"><div class="ic">💬</div>No client conversations yet.</div>` :
+      conversations.map(c=>`<div class="list-item" style="padding:12px 16px;cursor:pointer;" data-action="open-chat" data-id="${c.clientId}">
+        <div class="avatar">${initials(c.clientName)}</div>
+        <div style="flex:1;"><div class="row-between"><b style="font-size:13px;">${esc(c.clientName)}</b>${c.unread?`<span class="badge badge-red">${c.unread}</span>`:""}</div>
+        <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.lastMessage)}</div></div>
+      </div>`).join("")}
+    </div>
+    <div id="chat-thread-panel"><div class="card empty"><div class="ic">💬</div>Select a conversation</div></div>
+  </div>`;
+}
+async function openChatThread(clientId){
+  state.activeChatClient = clientId;
+  await refreshChatThread(clientId);
+}
+async function refreshChatThread(clientId){
+  try{
+    const {messages} = await api("/api/chat/"+clientId);
+    const panel = document.getElementById("chat-thread-panel");
+    if(!panel) return;
+    panel.innerHTML = `<div class="card" style="display:flex;flex-direction:column;height:480px;">
+      <div class="chat-thread" id="admin-chat-thread" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;">
+        ${messages.map(m=>`<div style="align-self:${m.sender==='company'?'flex-end':'flex-start'};max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;background:${m.sender==='company'?'var(--green)':'var(--sand-deep)'};color:${m.sender==='company'?'#fff':'inherit'};">${esc(m.message)}</div>`).join("") || `<div class="field-hint">No messages yet.</div>`}
+      </div>
+      <form data-form="admin-chat" data-id="${clientId}" style="display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);">
+        <input name="message" placeholder="Reply…" required style="flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);">
+        <button class="btn btn-primary btn-sm" type="submit">Send</button>
+      </form>
+    </div>`;
+    const thread = document.getElementById("admin-chat-thread");
+    if(thread) thread.scrollTop = thread.scrollHeight;
+  }catch(e){}
+}
+
+/* ============================================================
+   NOTIFICATIONS
+   ============================================================ */
+async function loadNotifications(){
+  renderShell(loadingSkeleton(), "Notifications");
+  try{ const {notifications} = await api("/api/notifications"); renderShell(notificationsHtml(notifications), "Notifications"); }
+  catch(e){ renderShell(errorState("Couldn't load notifications."), "Notifications"); }
+}
+function notificationsHtml(items){
+  return `
+  <div class="row-between" style="margin-bottom:16px;"><span></span><button class="btn btn-primary btn-sm" data-action="broadcast">+ Broadcast Notification</button></div>
+  ${!items.length ? `<div class="card empty"><div class="ic">🔔</div>No notifications yet.</div>` :
+  `<div class="card card-pad">${items.map(n=>`
+    <div class="list-item">
+      <div style="font-size:20px;">${n.type==='payment'?'💳':n.type==='maintenance'?'🔧':n.type==='project'?'📍':'🔔'}</div>
+      <div style="flex:1;"><b style="font-size:13.5px;">${esc(n.title)}</b><div style="font-size:12.5px;color:var(--text-muted);">${esc(n.message)}</div><div style="font-size:11px;color:var(--text-faint);margin-top:3px;">${fmtDate(n.date)}${n.userId?" · Direct":" · System-wide"}</div></div>
+    </div>`).join("")}</div>`}`;
+}
+function broadcastModal(){
+  const clientOptions = (state.cache.clients||[]).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  showModal("Broadcast Notification", `<form data-form="broadcast">
+    <div class="field"><label>Recipient</label><select name="userId"><option value="">Everyone (system-wide)</option>${clientOptions}</select></div>
+    <div class="field"><label>Type</label><select name="type"><option value="system">System</option><option value="project">Project</option><option value="payment">Payment</option><option value="maintenance">Maintenance</option></select></div>
+    <div class="field"><label>Title *</label><input name="title" required></div>
+    <div class="field"><label>Message *</label><textarea name="message" required></textarea></div>
+    <button class="btn btn-primary btn-block" type="submit">Send</button>
+  </form>`, "");
+}
+
+/* ============================================================
+   CMS
+   ============================================================ */
+async function loadCms(){
+  renderShell(loadingSkeleton(), "Site Content");
+  try{ const {content} = await api("/api/cms"); renderShell(cmsHtml(content), "Site Content"); }
+  catch(e){ renderShell(errorState("Couldn't load site content."), "Site Content"); }
+}
+function cmsHtml(c){
+  return `<div class="card card-pad" style="max-width:560px;">
+    <form data-form="cms">
+      <div class="field"><label>Hero Title</label><input name="heroTitle" value="${esc(c.heroTitle||'')}"></div>
+      <div class="field"><label>Hero Subtitle</label><input name="heroSubtitle" value="${esc(c.heroSubtitle||'')}"></div>
+      <div class="field"><label>Contact Phone</label><input name="contactPhone" value="${esc(c.contactPhone||'')}"></div>
+      <div class="field"><label>Contact Address</label><input name="contactAddress" value="${esc(c.contactAddress||'')}"></div>
+      <div class="field"><label>Contact Hours</label><input name="contactHours" value="${esc(c.contactHours||'')}"></div>
+      <button class="btn btn-primary btn-block" type="submit">Save Site Content</button>
+    </form>
+  </div>`;
+}
+
+/* ============================================================
+   ROLES & PERMISSIONS (reference matrix — capabilities are
+   enforced server-side by role; this is a readable summary)
+   ============================================================ */
+function loadRoles(){
+  const rows = [
+    ["View clients","✅","✅","—"],
+    ["Approve / suspend clients","✅","—","—"],
+    ["Create / edit projects","✅","✅","—"],
+    ["Delete projects","✅","—","—"],
+    ["Manage staff","✅","—","—"],
+    ["Manage equipment","✅","✅","—"],
+    ["Record payments","✅","✅","—"],
+    ["View financial reports","✅","✅","—"],
+    ["Reply to tickets","✅","✅","—"],
+    ["Broadcast notifications","✅","✅","—"],
+    ["Edit site content (CMS)","✅","—","—"],
+    ["View audit logs","✅","—","—"],
+    ["Book drilling / manage own profile","—","—","✅"],
+  ];
+  renderShell(`
+  <div class="card card-pad">
+    <div class="field-hint" style="margin-bottom:16px;">Permissions are enforced by the API for every request — this table is a reference, not a live editor. To change what an individual has access to, change their role under <b>Staff</b>.</div>
+    <div class="table-wrap"><table class="role-matrix">
+      <thead><tr><th>Capability</th><th>Admin</th><th>Staff</th><th>Client</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</tbody>
+    </table></div>
+  </div>`, "Roles & Permissions");
+}
+
+/* ============================================================
+   AUDIT LOGS
+   ============================================================ */
+async function loadAudit(){
+  renderShell(loadingSkeleton(), "Audit Logs");
+  try{ const {logs} = await api("/api/audit-logs"); renderShell(auditHtml(logs), "Audit Logs"); }
+  catch(e){ renderShell(errorState("Couldn't load audit logs."), "Audit Logs"); }
+}
+function auditHtml(logs){
+  if(!logs.length) return `<div class="card empty"><div class="ic">📜</div>No audit events yet.</div>`;
+  return `<div class="card"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Details</th></tr></thead>
+  <tbody>${logs.map(l=>`<tr><td>${fmtDateTime(l.date)}</td><td>${esc(l.actorName)} <span class="badge badge-grey">${l.actorRole||"—"}</span></td><td>${esc(l.action)}</td><td style="font-size:11.5px;color:var(--text-muted);">${esc(JSON.stringify(l.details))}</td></tr>`).join("")}</tbody></table></div></div>`;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function loadSettings(){
+  renderShell(`
+  <div class="card card-pad" style="max-width:420px;margin-bottom:16px;">
+    <div class="row" style="margin-bottom:14px;"><div class="avatar" style="width:52px;height:52px;">${initials(state.user.name)}</div><div><b>${esc(state.user.name)}</b><div style="font-size:12px;color:var(--text-muted);">${esc(state.user.email||"")}</div></div></div>
+    <button class="btn btn-outline btn-sm" data-action="edit-profile">Edit Profile</button>
+  </div>
+  <div class="card" style="max-width:420px;margin-bottom:16px;">
+    <div class="row-between" style="padding:14px 18px;border-bottom:1px solid var(--border);"><b style="font-size:13px;">Dark Mode</b><button class="btn btn-sm ${document.documentElement.getAttribute('data-theme')==='dark'?'btn-primary':'btn-outline'}" data-action="toggle-theme">${document.documentElement.getAttribute('data-theme')==='dark'?'🌙 On':'☀️ Off'}</button></div>
+    <div class="row-between" style="padding:14px 18px;"><b style="font-size:13px;">API Server</b><button class="btn btn-outline btn-sm" data-action="edit-api">${esc(CONFIG.apiBase)}</button></div>
+  </div>
+  <button class="btn btn-danger" data-action="logout">🚪 Sign Out</button>
+  `, "Settings");
+}
+function editProfileModal(){
+  showModal("Edit Profile", `<form data-form="edit-profile">
+    <div class="field"><label>Name</label><input name="name" value="${esc(state.user.name)}" required></div>
+    <div class="field"><label>Phone</label><input name="phone" value="${esc(state.user.phone||'')}"></div>
+    <button class="btn btn-primary btn-block" type="submit">Save Changes</button>
+  </form>`, "");
+}
+function editApiModal(){
+  showModal("API Server Address", `<form data-form="edit-api">
+    <div class="field"><label>Base URL</label><input name="apiBase" value="${esc(CONFIG.apiBase)}" required></div>
+    <button class="btn btn-primary btn-block" type="submit">Save</button>
+  </form>`, "");
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function showModal(title, body, footer){
+  const existing = document.getElementById("modal-root"); if(existing) existing.remove();
+  const wrap = document.createElement("div");
+  wrap.id = "modal-root"; wrap.className = "modal-overlay";
+  wrap.innerHTML = `<div class="modal">
+    <div class="modal-header"><b style="font-size:16px;">${title}</b><button class="icon-btn" data-action="close-modal" style="width:30px;height:30px;">✕</button></div>
+    <div class="modal-body">${body}</div>
+    ${footer?`<div class="modal-footer">${footer}</div>`:""}
+  </div>`;
+  wrap.addEventListener("click", e=>{ if(e.target===wrap) closeModal(); });
+  document.body.appendChild(wrap);
+}
+function closeModal(){ const m=document.getElementById("modal-root"); if(m) m.remove(); }
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const LOADERS = {
+  dashboard: loadDashboard, clients: loadClients, projects: ()=>loadProjects(),
+  staff: loadStaff, equipment: ()=>loadEquipment(), finance: ()=>loadFinance(),
+  tickets: loadTickets, chat: loadChat, notifications: loadNotifications,
+  cms: loadCms, roles: loadRoles, audit: loadAudit, settings: loadSettings,
+};
+function render(){
+  if(state.chatPoll){ clearInterval(state.chatPoll); state.chatPoll=null; state.activeChatClient=null; }
+  if(!state.token || !state.user){ renderAuth(); return; }
+  (LOADERS[state.view] || loadDashboard)();
+}
+
+/* ============================================================
+   EVENT DELEGATION
+   ============================================================ */
+document.addEventListener("click", async (e)=>{
+  const t = e.target.closest("[data-action]"); if(!t) return;
+  const action = t.dataset.action;
