@@ -15,14 +15,7 @@ services:
       - "4000:4000"
     environment:
       - PORT=4000
-      # No hardcoded fallback here on purpose — a default like
-      # "change-me-in-production" is itself a known, guessable secret the
-      # moment it's in a public file. Set a real JWT_SECRET in your shell
-      # or a .env file before running `docker-compose up`; if you don't,
-      # lib/auth.js generates a random one for that run and logs a warning
-      # (or refuses to start if NODE_ENV=production is also set — see
-      # documentation/ENVIRONMENT_VARIABLES.md).
-      - JWT_SECRET=${JWT_SECRET:-}
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-120}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
