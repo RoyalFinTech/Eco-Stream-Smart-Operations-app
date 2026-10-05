@@ -191,21 +191,31 @@ function registerSupabase(router) {
 
   router.put("/api/auth/profile", authenticate, async (req, res) => {
     const patch = {};
-    if (req.body.name) patch.name = req.body.name;
+    if (req.body.name) patch.name = String(req.body.name).trim();
     if (req.body.phone) patch.phone = normalizePhoneInput(req.body.phone);
     if (req.body.address !== undefined) patch.address = req.body.address;
-    const profile = await getRequestDb(req).collection("profiles").updateById(req.user.id, patch);
-    if (!profile) return sendJSON(res, 404, { error: "User profile not found" });
-    if (req.body.name || req.body.phone) {
-      // Keep Auth metadata changes atomic so updating name + phone together
-      // cannot overwrite one field with a stale metadata snapshot.
+
+    if (req.body.phone) {
+      const existing = await supabaseAuth.adminFindUserByPhone(patch.phone);
+      if (existing && existing.id !== req.user.id) {
+        return sendJSON(res, 409, { error: "An account with this phone number already exists" });
+      }
+      // Phone + PIN login is backed by the deterministic internal Auth email.
+      // Update that identity server-side and keep metadata synchronized.
+      await supabaseAuth.adminUpdatePhoneIdentity(req.user.id, patch.phone);
+    }
+
+    if (req.body.name) {
       const metadata = {
         ...(req.user.authUser.user_metadata || {}),
-        ...(req.body.name ? { name: String(req.body.name).trim() } : {}),
+        name: patch.name,
         ...(req.body.phone ? { phone: patch.phone } : {}),
       };
       await supabaseAuth.updateUser(req.user.accessToken, { data: metadata });
     }
+
+    const profile = await getRequestDb(req).collection("profiles").updateById(req.user.id, patch);
+    if (!profile) return sendJSON(res, 404, { error: "User profile not found" });
     sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone } });
   });
 }
