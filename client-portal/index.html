@@ -446,7 +446,7 @@ function renderAuth(){
 }
 function phoneField(name="phone", value="87"){
   return `<div class="field"><label>Gambian Mobile Number</label>
-    <div class="phone-control"><span class="phone-country">🇬🇲 +220</span><input name="${name}" value="${esc(value || "87")}" required inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" placeholder="87 ••• ••• 7"></div>
+    <div class="phone-control"><span class="phone-country">🇬🇲 +220</span><input name="${name}" value="${esc(value || "87")}" required inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" placeholder="87 ••• ••• 7" aria-label="Gambian phone number"></div>
     <div class="field-hint">Enter the 9-digit number after +220.</div>
   </div>`;
 }
@@ -1065,6 +1065,7 @@ document.addEventListener("submit", async (e)=>{
   e.preventDefault();
   const kind = form.dataset.form;
   const data = Object.fromEntries(new FormData(form).entries());
+  if (data.phone) data.phone = String(data.phone).replace(/\D/g, "");
   const submitBtn = form.querySelector("button[type=submit]");
   if(submitBtn){ submitBtn.disabled = true; submitBtn.dataset.origText = submitBtn.textContent; submitBtn.textContent = "Please wait…"; }
 
