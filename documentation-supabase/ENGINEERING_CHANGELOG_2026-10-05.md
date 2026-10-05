@@ -114,3 +114,10 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - Phone changes update Auth user metadata rather than invoking phone confirmation or SMS delivery.
 - Centralized the internal identity mapping in `backend/lib/supabaseAuth.js` as `internalAuthEmail()` to keep customer/admin provisioning consistent.
 - Result: SMS/Phone Auth provider is not required for normal customer, client-management, or staff-management account creation.
+
+
+## 52. Auth identity helper and SMS-independent phone-update correction — 2026-10-05
+- Verified `backend/lib/supabaseAuth.js` on `main` and confirmed `internalAuthEmail()` contains valid JavaScript with no accidental literal newline corruption.
+- Removed the duplicate internal identity helper from `backend/routes/auth.js` so customer registration uses the centralized `supabaseAuth.internalAuthEmail()` implementation.
+- Corrected authenticated customer phone updates to modify Supabase Auth user metadata only; they no longer invoke Supabase Phone Auth confirmation/SMS behavior.
+- Preserved the deterministic internal Auth email identity so existing phone/PIN accounts remain addressable without SMS.
