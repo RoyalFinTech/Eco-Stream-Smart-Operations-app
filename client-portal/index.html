@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EcoStream — Client Portal</title>
-<link rel="icon" type="image/png" href="assets/ecostream-logo.png">
+<link rel="icon" type="image/png" href="assets/ecostream-logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -407,7 +407,7 @@ function renderAuth(){
   <div class="auth-screen">
     <div class="auth-box">
       <div class="auth-logo">
-        <div class="logo-plate"><img src="assets/ecostream-logo.png" alt="EcoStream official logo"></div>
+        <div class="logo-plate"><img src="assets/ecostream-logo.svg" alt="EcoStream official logo"></div>
         <h1>EcoStream</h1>
         <p>Borehole Drilling Services</p>
       </div>
@@ -496,7 +496,7 @@ function renderShell(innerHtml, title){
   <div class="app-shell">
     <div class="sidebar-scrim" data-action="close-sidebar"></div>
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="logo-plate"><img src="assets/ecostream-logo.png" alt="EcoStream official logo"></div><div><b>EcoStream</b><span>Client Portal</span></div></div>
+      <div class="brand"><div class="logo-plate"><img src="assets/ecostream-logo.svg" alt="EcoStream official logo"></div><div><b>EcoStream</b><span>Client Portal</span></div></div>
       <nav class="nav-list">
         ${NAV.map(([id,ic,label])=>`<button class="nav-item ${state.view===id?'active':''}" data-action="nav" data-view="${id}"><span class="ic">${ic}</span>${label}</button>`).join("")}
       </nav>
@@ -505,7 +505,7 @@ function renderShell(innerHtml, title){
     <div class="main">
       <div class="topbar">
         <button class="hamburger" data-action="toggle-sidebar" aria-label="Open navigation">☰</button>
-        <div class="mobile-brand"><img src="assets/ecostream-logo.png" alt="EcoStream official logo"></div>
+        <div class="mobile-brand"><img src="assets/ecostream-logo.svg" alt="EcoStream official logo"></div>
         <h2>${title}</h2>
         <div class="spacer"></div>
         <button class="icon-btn" data-action="toggle-theme" title="Toggle dark mode">${theme==="dark"?"☀️":"🌙"}</button>
