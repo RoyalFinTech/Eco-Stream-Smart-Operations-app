@@ -121,3 +121,9 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - Removed the duplicate internal identity helper from `backend/routes/auth.js` so customer registration uses the centralized `supabaseAuth.internalAuthEmail()` implementation.
 - Corrected authenticated customer phone updates to modify Supabase Auth user metadata only; they no longer invoke Supabase Phone Auth confirmation/SMS behavior.
 - Preserved the deterministic internal Auth email identity so existing phone/PIN accounts remain addressable without SMS.
+
+## 53. Authentication hardening: login throttling and atomic Auth metadata updates — 2026-10-05
+- Added a dedicated in-memory limit of 10 customer login attempts per minute and 5 administrator login attempts per minute, in addition to the existing global API limit.
+- Kept the production implementation SMS-independent: no SMS, OTP, or Supabase Phone Auth flow was added.
+- Corrected profile updates so name and phone Auth metadata are merged once from the current metadata snapshot, preventing a simultaneous name + phone update from overwriting either field.
+\n
