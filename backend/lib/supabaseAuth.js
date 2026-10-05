@@ -88,6 +88,11 @@ async function adminFindUserByEmail(email) {
   const target = String(email || "").trim().toLowerCase();
   return users.find((u) => String(u.email || "").toLowerCase() === target) || null;
 }
+async function adminFindUserByPhone(phone) {
+  const users = await adminListUsers();
+  const target = normalizePhone(phone);
+  return users.find((u) => normalizePhone(u.phone || u.user_metadata?.phone || "") === target) || null;
+}
 async function adminCreateUser({ phone, email, password, phoneConfirmed = true, emailConfirmed = true, data = {} }) {
   if (email) return adminRequest("users", "POST", { email: String(email).trim().toLowerCase(), password, email_confirm: emailConfirmed, user_metadata: { ...(data || {}) } });
 
@@ -116,4 +121,4 @@ async function adminDeleteUser(userId) {
   return adminRequest(`users/${encodeURIComponent(userId)}`, "DELETE");
 }
 
-module.exports = { normalizePhone, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
+module.exports = { normalizePhone, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
