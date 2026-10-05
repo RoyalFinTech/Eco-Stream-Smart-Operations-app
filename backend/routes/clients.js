@@ -48,7 +48,10 @@ function register(router) {
     const { name, phone, address } = req.body;
         const patch = {};
     if (name) patch.name = name;
-    if (phone) patch.phone = phone;
+    if (phone) {
+      patch.phone = phone;
+      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { phone: supabaseAuth.normalizePhone(phone), phone_confirm: true });
+    }
     if (address !== undefined) patch.address = address;
         const updated = await users.updateById(req.params.id, patch);
     sendJSON(res, 200, { client: publicUser(updated) });
