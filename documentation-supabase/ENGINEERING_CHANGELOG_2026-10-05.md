@@ -25,3 +25,13 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 18. Added privileged Supabase Auth admin provisioning/deletion for staff/client management and documented SUPABASE_SERVICE_ROLE_KEY as required only for those server-side administrative operations.
 19. Added Supabase Auth logout/session handling and public CMS read support without bypassing RLS for normal authenticated data access.
 20. Frontend QA passed: no legacy embedded logo payloads remain, referenced branding assets resolve, both portal script blocks pass Node syntax validation, all backend JavaScript files pass node --check, and the JSON-provider smoke test passes.
+
+
+21. Deployment architecture decision: Render is the target application host, with Supabase remaining the production identity/database/storage platform. No Render PostgreSQL database will be created.
+22. Added root-level Render Blueprint with a single Node web service rooted at backend/. The service auto-deploys from main, exposes /api/health, and keeps Supabase secrets as Render-managed sync:false environment variables.
+23. Unified production serving: backend/server.js now serves the client portal at / and /portal/ and the admin portal at /admin/, while /api/* remains the API surface. This removes unnecessary frontend-to-API cross-origin configuration for the default deployment.
+24. Production storage hardening: STORAGE_PROVIDER=supabase is now part of the Render deployment contract, using the verified private Supabase Storage bucket named documents.
+25. Frontend deployment hardening: client/admin API-base selection now uses the browser origin when served over HTTP(S), while retaining localhost behavior for local development. Stale localhost API settings are ignored when the portal is hosted remotely.
+26. Deprecated the old backend/render.yaml manifest in favor of the root render.yaml so the monorepo deploys as one coherent application.
+27. Recorded the Render rollout runbook, required owner-provided production inputs, secret-handling rules, and Free-plan acceptance versus paid-plan live-operation guidance.
+28. QA direction: no production deployment should be declared certified until Render /api/health, client login/registration, admin login, Supabase Auth provisioning, RLS-protected CRUD, private document upload/download, tickets, chat, payments, and responsive portal flows are exercised against the live service.
