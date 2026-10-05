@@ -1,8 +1,8 @@
-const db = require("../lib/db");
-const { genId } = require("../lib/auth");
+const { getRequestDb } = require("../lib/requestDb");
 const { sendJSON, authenticate, requireRole } = require("../lib/router");
 const { requireFields, ValidationError } = require("../lib/validate");
 const { getStorageProvider } = require("../lib/storage");
+const crypto = require("crypto");
 
 const MAX_BASE64_LEN = 8 * 1024 * 1024; // ~6MB decoded, generous for reports/PDFs/images
 
@@ -32,21 +32,17 @@ function register(router) {
     if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" && buffer.subarray(0, 2).toString() !== "PK") throw new ValidationError("File content does not match DOCX type");
 
     const ownerId = req.user.role === "client" ? req.user.id : clientId || null;
-    const id = genId("doc");
-    const storageKey = id + SAFE_EXT[mimeType];
+    const storageKey = crypto.randomUUID() + SAFE_EXT[mimeType];
     const storage = getStorageProvider();
     await storage.save(buffer, storageKey, mimeType);
 
-    const doc = await db.collection("documents").insert({
-      id,
+    const doc = await getRequestDb(req).collection("documents").insert({
       clientId: ownerId,
       fileName,
       mimeType,
       storageKey, // opaque key inside whichever provider is active — never a client-supplied path
-      storageProvider: storage.name,
       category: category || "other", // report | water-test | contract | other
       uploadedBy: req.user.id,
-      uploadedByRole: req.user.role,
       createdAt: new Date().toISOString(),
     });
     sendJSON(res, 201, { document: doc });
@@ -54,14 +50,14 @@ function register(router) {
 
   // ---------- GET /api/documents (list — metadata only) ----------
   router.get("/api/documents", authenticate, async (req, res) => {
-    const all = await db.collection("documents").all();
+    const all = await getRequestDb(req).collection("documents").all();
     const visible = req.user.role === "client" ? all.filter((d) => d.clientId === req.user.id) : all;
     sendJSON(res, 200, { documents: visible });
   });
 
   // ---------- GET /api/documents/:id (download) ----------
   router.get("/api/documents/:id", authenticate, async (req, res) => {
-    const doc = await db.collection("documents").findById(req.params.id);
+    const doc = await getRequestDb(req).collection("documents").findById(req.params.id);
     if (!doc) return sendJSON(res, 404, { error: "Document not found" });
     if (req.user.role === "client" && doc.clientId !== req.user.id) {
       return sendJSON(res, 403, { error: "Forbidden" });
@@ -74,11 +70,11 @@ function register(router) {
 
   // ---------- DELETE /api/documents/:id ----------
   router.delete("/api/documents/:id", authenticate, requireRole("admin", "staff"), async (req, res) => {
-    const doc = await db.collection("documents").findById(req.params.id);
+    const doc = await getRequestDb(req).collection("documents").findById(req.params.id);
     if (!doc) return sendJSON(res, 404, { error: "Document not found" });
     const storage = getStorageProvider();
     await storage.remove(doc.storageKey);
-    await db.collection("documents").removeById(req.params.id);
+    await getRequestDb(req).collection("documents").removeById(req.params.id);
     sendJSON(res, 200, { message: "Document deleted" });
   });
 }
