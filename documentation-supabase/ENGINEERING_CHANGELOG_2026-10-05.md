@@ -106,3 +106,11 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - Added a narrowly scoped UPDATE policy: clients may update only company messages belonging to their own `auth.uid()` thread; staff/admin may update chat rows as operationally required.
 - No change to message visibility: clients remain restricted to their own thread and staff/admin retain cross-client access.
 - Migration: `allow_chat_read_receipts`.
+
+
+## 51. Admin-managed accounts also SMS-independent — 2026-10-05
+- Removed the remaining Supabase Phone Auth creation path from admin-created clients and staff.
+- Admin-created accounts now use the same deterministic internal Auth email identity mapped from the normalized phone number, with the six-digit PIN remaining the user-facing credential.
+- Phone changes update Auth user metadata rather than invoking phone confirmation or SMS delivery.
+- Centralized the internal identity mapping in `backend/lib/supabaseAuth.js` as `internalAuthEmail()` to keep customer/admin provisioning consistent.
+- Result: SMS/Phone Auth provider is not required for normal customer, client-management, or staff-management account creation.
