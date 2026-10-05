@@ -26,7 +26,6 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 19. Added Supabase Auth logout/session handling and public CMS read support without bypassing RLS for normal authenticated data access.
 20. Frontend QA passed: no legacy embedded logo payloads remain, referenced branding assets resolve, both portal script blocks pass Node syntax validation, all backend JavaScript files pass node --check, and the JSON-provider smoke test passes.
 
-
 21. Deployment architecture decision: Render is the target application host, with Supabase remaining the production identity/database/storage platform. No Render PostgreSQL database will be created.
 22. Added root-level Render Blueprint with a single Node web service rooted at backend/. The service auto-deploys from main, exposes /api/health, and keeps Supabase secrets as Render-managed sync:false environment variables.
 23. Unified production serving: backend/server.js now serves the client portal at / and /portal/ and the admin portal at /admin/, while /api/* remains the API surface. This removes unnecessary frontend-to-API cross-origin configuration for the default deployment.
@@ -36,8 +35,12 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 27. Recorded the Render rollout runbook, required owner-provided production inputs, secret-handling rules, and Free-plan acceptance versus paid-plan live-operation guidance.
 28. QA direction: no production deployment should be declared certified until Render /api/health, client login/registration, admin login, Supabase Auth provisioning, RLS-protected CRUD, private document upload/download, tickets, chat, payments, and responsive portal flows are exercised against the live service.
 
-
 29. Repository-state correction: verified that the earlier binary-tree logo object was not attached to the current main branch after subsequent Contents API commits. No branch history was force-overwritten.
 30. Added the verified official EcoStream logo as a self-contained SVG asset containing the original PNG artwork, committed independently under both client-portal/assets/ecostream-logo.svg and admin-portal/assets/ecostream-logo.svg.
 31. Updated both portals to reference the canonical SVG logo asset. Verified both assets exist on the current main branch and have identical content SHA.
 32. Deployment QA remains gated on live Render testing; source-side deployment configuration and security checks are complete, but no live Render service exists yet.
+
+33. Render production service created under Royal's workspace as `ecostream`, connected to `RoyalFinTech/Eco-Stream-Smart-Operations-app` on `main`, with Supabase production configuration and automatic deploys enabled.
+34. First Render build exposed a corrupted `backend/lib/supabaseSchemaMap.js` whose contents had been replaced by a tool error string. Restored the complete production schema mapping module and committed the repair as `34c18fd05041bc6484156a0da238361d62b81e74`.
+35. Verified Render build success and live process startup on commit `34c18fd05041bc6484156a0da238361d62b81e74`. Render reports the service live at `https://ecostream-m2sy.onrender.com`; runtime logs confirm the application is listening on Render's assigned port and exposes /portal/, /admin/, and /api/health.
+36. Live certification remains gated: external request smoke tests and authenticated Supabase/RLS/storage flows still need to be exercised. SUPABASE_SERVICE_ROLE_KEY must contain the real private Supabase service-role secret in Render before private Storage and privileged Auth administration are considered operational.
