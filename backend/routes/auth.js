@@ -75,10 +75,6 @@ function registerSupabase(router) {
   // identifier; Supabase stores an internal confirmed email identity so the
   // account works while SMS is disabled. SMS can be enabled later without
   // changing the customer-facing account model.
-  function internalAuthEmail(phone) {
-    return `phone_${normalizePhoneInput(phone).replace(/\D/g, "")}@accounts.ecostream.gm`;
-  }
-
   async function provisionClientProfile(authUser, { name, phone, address }) {
     const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -103,7 +99,7 @@ function registerSupabase(router) {
       if (await supabaseAuth.adminFindUserByPhone(normalizedPhone)) {
         return sendJSON(res, 409, { error: "An account with this phone number already exists" });
       }
-      const email = internalAuthEmail(normalizedPhone);
+      const email = supabaseAuth.internalAuthEmail(normalizedPhone);
       const created = await supabaseAuth.adminCreateUser({
         email,
         password: String(pin),
@@ -200,7 +196,9 @@ function registerSupabase(router) {
       await supabaseAuth.updateUser(req.user.accessToken, { data: { ...(req.user.authUser.user_metadata || {}), name: req.body.name } });
     }
     if (req.body.phone) {
-      await supabaseAuth.updateUser(req.user.accessToken, { phone: patch.phone });
+      // SMS-independent phone changes: update Auth metadata only.
+      // The deterministic internal Auth email remains stable for the existing account.
+      await supabaseAuth.updateUser(req.user.accessToken, { data: { ...(req.user.authUser.user_metadata || {}), phone: patch.phone } });
     }
     sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone } });
   });
