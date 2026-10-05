@@ -473,7 +473,7 @@ function authRegisterForm(){
     ${pinField("pin","Create 6-Digit PIN","new-password")}
     <div class="field"><label>Address (optional)</label><input name="address" autocomplete="street-address" placeholder="Area / town"></div>
     <button class="btn btn-primary btn-block" type="submit">Create Secure Account</button>
-    <div class="field-hint" style="margin-top:10px;text-align:center;">After signing in, you can enable device biometrics/passkey.</div>
+    <div class="field-hint" style="margin-top:10px;text-align:center;">No SMS verification is required. After signing in, you can enable device biometrics/passkey.</div>
   </form>`;
 }
 function authForgotForm(){
@@ -1076,12 +1076,7 @@ document.addEventListener("submit", async (e)=>{
     }
     else if(kind==="register"){
       const res = await api("/api/auth/register", { method:"POST", body: JSON.stringify(data) });
-      if(res.verificationRequired){ state.pendingPhone=res.phone; state.authMode="verify-phone"; renderAuth(); toast("Check your phone for the verification code.","success"); }
-      else { setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Account created — welcome to EcoStream!","success"); render(); }
-    }
-    else if(kind==="verify-phone"){
-      const res = await api("/api/auth/verify-phone", { method:"POST", body: JSON.stringify({phone:state.pendingPhone, token:data.token}) });
-      setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Phone verified — welcome to EcoStream!","success"); render();
+      setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Account created — welcome to EcoStream!","success"); render();
     }
     else if(kind==="forgot"){
       const res = await api("/api/auth/forgot-pin", { method:"POST", body: JSON.stringify(data) });
