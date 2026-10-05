@@ -418,6 +418,7 @@ function statusBadge(status){
    ============================================================ */
 function renderAuth(){
   const mode = state.authMode;
+  const tabs = mode!=="reset" && mode!=="verify-phone" ? '<div class="auth-tabs"><button data-action="auth-tab" data-mode="login" class="'+(mode==='login'||mode==='forgot'?'active':'')+'">Sign In</button><button data-action="auth-tab" data-mode="register" class="'+(mode==='register'?'active':'')+'">Create Account</button></div>' : '';
   app.innerHTML = `
   <div class="auth-screen">
     <div class="auth-box">
@@ -426,11 +427,7 @@ function renderAuth(){
         <h1>EcoStream</h1>
         <p>Smart Borehole Operations</p>
       </div>
-      \${mode!=="reset" && mode!=="verify-phone" ? `
-      <div class="auth-tabs">
-        <button data-action="auth-tab" data-mode="login" class="\${mode==='login'||mode==='forgot'?'active':''}">Sign In</button>
-        <button data-action="auth-tab" data-mode="register" class="\${mode==='register'?'active':''}">Create Account</button>
-      </div>`:""}
+      \${tabs}
       <div class="auth-card">
         \${mode==="login" ? authLoginForm() : ""}
         \${mode==="register" ? authRegisterForm() : ""}
@@ -463,9 +460,7 @@ function authLoginForm(){
     \${pinField()}
     <button class="btn btn-primary btn-block" type="submit">Sign In Securely</button>
     <button class="btn btn-outline btn-block" style="margin-top:10px;" type="button" data-action="passkey-login">🔐 Use Phone Biometrics / Passkey</button>
-    <div style="text-align:center;margin-top:14px;">
-      <button type="button" class="auth-link" style="color:var(--green);" data-action="auth-tab" data-mode="forgot">Forgot PIN?</button>
-    </div>
+    <div style="text-align:center;margin-top:14px;"><button type="button" class="auth-link" style="color:var(--green);" data-action="auth-tab" data-mode="forgot">Forgot PIN?</button></div>
     <div class="divider"></div>
     <div class="field-hint" style="text-align:center;">Your PIN is protected by Supabase Auth. Never share it.</div>
   </form>`;
