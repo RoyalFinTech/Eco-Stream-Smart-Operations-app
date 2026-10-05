@@ -20,7 +20,56 @@ function normalizePhoneInput(phone) { return supabaseAuth.normalizePhone(phone);
 function validatePin(pin) {
   if (!/^\d{6}$/.test(String(pin || ""))) throw new ValidationError("PIN must be exactly 6 digits");
 }
+async function ensureConfiguredAdmin() {
+  const email = String(process.env.ADMIN_LOGIN_EMAIL || "").trim().toLowerCase();
+  const password = String(process.env.ADMIN_LOGIN_PASSWORD || "");
+  if (!email || !password) throw Object.assign(new Error("Admin login credentials are not configured"), { status: 503 });
+  let authUser = await supabaseAuth.adminFindUserByEmail(email);
+  if (!authUser) {
+    const created = await supabaseAuth.adminCreateUser({ email, password, emailConfirmed: true, data: { name: "EcoStream Administrator", role: "admin" } });
+    authUser = created.user;
+  } else {
+    await supabaseAuth.adminUpdateUser(authUser.id, { password, email_confirm: true, user_metadata: { ...(authUser.user_metadata || {}), name: authUser.user_metadata?.name || "EcoStream Administrator", role: "admin" } });
+  }
+  // The auth trigger may provision a client profile first; immediately enforce
+  // the configured admin identity/role server-side.
+  const { url } = (() => {
+    const u = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
+    const k = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+    if (!u || !k) throw Object.assign(new Error("Supabase service role configuration is unavailable"), { status: 503 });
+    return { url: u, key: k };
+  })();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify({ id: authUser.id, role: "admin", status: "active", name: "EcoStream Administrator", email })
+  });
+  if (!response.ok) throw Object.assign(new Error("Could not provision the configured admin profile"), { status: 503 });
+  return authUser;
+}
+
 function registerSupabase(router) {
+  router.post("/api/auth/admin-login", async (req, res) => {
+    const { email, password } = req.body;
+    requireFields(req.body, ["email", "password"]);
+    const configuredEmail = String(process.env.ADMIN_LOGIN_EMAIL || "").trim().toLowerCase();
+    const configuredPassword = String(process.env.ADMIN_LOGIN_PASSWORD || "");
+    if (!configuredEmail || !configuredPassword || String(email).trim().toLowerCase() !== configuredEmail || String(password) !== configuredPassword) {
+      return sendJSON(res, 401, { error: "Invalid administrator credentials" });
+    }
+    try {
+      const authUser = await ensureConfiguredAdmin();
+      const session = await supabaseAuth.signIn({ email: configuredEmail, password: configuredPassword });
+      const profile = await requireProfile(session.access_token, authUser.id);
+      if (!profile || profile.role !== "admin") return sendJSON(res, 403, { error: "Administrator profile is not authorized." });
+      sendJSON(res, 200, { token: session.access_token, refreshToken: session.refresh_token, user: { ...profile, email: configuredEmail, role: "admin", authProvider: "supabase" } });
+    } catch (err) {
+      if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "Administrator authentication failed" });
+      throw err;
+    }
+  });
+
   router.post("/api/auth/register", async (req, res) => {
     const { name, phone, pin, address } = req.body;
     requireFields(req.body, ["name", "phone", "pin"]);
