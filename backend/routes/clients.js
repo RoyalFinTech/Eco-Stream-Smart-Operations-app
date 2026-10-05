@@ -24,7 +24,7 @@ function register(router) {
       if (!pin || !/^\d{6}$/.test(String(pin))) throw new ValidationError("A 6-digit PIN is required");
       let authUser;
       try {
-        authUser = await supabaseAuth.adminCreateUser({ phone, password: String(pin), phoneConfirmed: true, data: { name, phone, role: "client" } });
+        authUser = await supabaseAuth.adminCreateUser({ email: supabaseAuth.internalAuthEmail(phone), password: String(pin), emailConfirmed: true, data: { name, phone, role: "client" } });
         const client = await getRequestDb(req).collection("profiles").updateById(authUser.id, { role: "client", status: "active", name, phone, address: address || "" });
         if (!client) throw Object.assign(new Error("Supabase Auth user was created but profile provisioning failed"), { status: 502 });
         await audit(req, "client_created", { clientId: authUser.id });
@@ -50,7 +50,7 @@ function register(router) {
     if (name) patch.name = name;
     if (phone) {
       patch.phone = phone;
-      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { phone: supabaseAuth.normalizePhone(phone), phone_confirm: true });
+      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { user_metadata: { phone: supabaseAuth.normalizePhone(phone) } });
     }
     if (address !== undefined) patch.address = address;
         const updated = await users.updateById(req.params.id, patch);
