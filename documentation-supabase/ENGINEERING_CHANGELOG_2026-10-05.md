@@ -47,3 +47,10 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 37. Supabase production verification checkpoint: security advisor returns zero findings; all 11 public application tables have RLS enabled; expected client/staff/admin policies are present; performance advisor reports only unused-index INFO notices because all application tables currently contain zero rows.
 38. Render service metadata verified: service `ecostream` is active, unsuspended, on the Free plan in Frankfurt, with one instance, automatic deployment enabled, and primary URL `https://ecostream-m2sy.onrender.com`.
 39. Full production certification remains gated on authenticated end-to-end request tests and private Storage/Auth-admin operations. External HTTP probing from the current engineering tool environment is unavailable, so no unsupported HTTP success claim is recorded.
+
+40. Production runtime verification checkpoint: Render service metadata remains active/unsuspended, auto-deploys from `main`, and the latest deployment for commit `dfbd47730c25062752f687674e973596aed303e1` is LIVE. Render telemetry currently reports no HTTP request samples, so external endpoint success is not asserted.
+
+41. Private document-storage verification checkpoint: Supabase contains the `documents` Storage bucket, configured as private. Storage policies exist for owner upload/read and staff/admin read/delete. The application storage provider intentionally uses the server-side Supabase service-role credential and never exposes it to portal code.
+
+42. Deployment configuration gap recorded: the repository root `render.yaml` declares `healthCheckPath: /api/health`, but the currently provisioned Render service metadata reports an empty health-check path. This must be reconciled through Render service configuration/Blueprint management before final production certification; no destructive service recreation is being performed while the live service is healthy.
+
