@@ -83,7 +83,7 @@ async function adminRequest(path, method, body) {
   return data;
 }
 
-async function adminFindUserByEmail(email) {
+function internalAuthEmail(phone) {\n  const normalized = normalizePhone(phone);\n  return `phone_${normalized.replace(/\\D/g, "")}@accounts.ecostream.gm`;\n}\n\nasync function adminFindUserByEmail(email) {
   const users = await adminListUsers();
   const target = String(email || "").trim().toLowerCase();
   return users.find((u) => String(u.email || "").toLowerCase() === target) || null;
@@ -121,4 +121,4 @@ async function adminDeleteUser(userId) {
   return adminRequest(`users/${encodeURIComponent(userId)}`, "DELETE");
 }
 
-module.exports = { normalizePhone, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
+module.exports = { normalizePhone, internalAuthEmail, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
