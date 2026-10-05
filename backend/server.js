@@ -44,6 +44,15 @@ require("./routes/reports").register(router);
 require("./routes/cms").register(router);
 require("./routes/sessions").register(router);
 
+router.get("/api/config/public", (req, res) => {
+  sendJSON(res, 200, {
+    supabaseUrl: process.env.SUPABASE_URL || "",
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+    passkeyRpId: "ecostream-m2sy.onrender.com",
+    passkeyOrigin: "https://ecostream-m2sy.onrender.com"
+  });
+});
+
 router.get("/api/health", (req, res) => {
   sendJSON(res, 200, { status: "ok", time: new Date().toISOString(), uptimeSeconds: Math.round(process.uptime()) });
 });
