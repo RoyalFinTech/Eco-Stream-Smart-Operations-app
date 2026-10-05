@@ -96,7 +96,21 @@ async function adminFindUserByEmail(email) {
 async function adminFindUserByPhone(phone) {
   const users = await adminListUsers();
   const target = normalizePhone(phone);
-  return users.find((u) => normalizePhone(u.phone || u.user_metadata?.phone || "") === target) || null;
+  return users.find((u) => {
+    const candidate = u.phone || u.user_metadata?.phone || "";
+    if (!candidate) return false;
+    try { return normalizePhone(candidate) === target; } catch { return false; }
+  }) || null;
+}
+async function adminUpdatePhoneIdentity(userId, phone) {
+  const normalized = normalizePhone(phone);
+  const current = await adminGetUser(userId);
+  const metadata = { ...(current.user_metadata || {}), phone: normalized };
+  return adminUpdateUser(userId, {
+    email: internalAuthEmail(normalized),
+    email_confirm: true,
+    user_metadata: metadata,
+  });
 }
 async function adminCreateUser({ phone, email, password, phoneConfirmed = true, emailConfirmed = true, data = {} }) {
   if (email) return adminRequest("users", "POST", { email: String(email).trim().toLowerCase(), password, email_confirm: emailConfirmed, user_metadata: { ...(data || {}) } });
@@ -126,4 +140,4 @@ async function adminDeleteUser(userId) {
   return adminRequest(`users/${encodeURIComponent(userId)}`, "DELETE");
 }
 
-module.exports = { normalizePhone, internalAuthEmail, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
+module.exports = { normalizePhone, internalAuthEmail, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminUpdatePhoneIdentity, adminDeleteUser };
