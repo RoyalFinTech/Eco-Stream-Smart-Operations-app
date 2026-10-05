@@ -39,3 +39,13 @@ Branding hardening:
 ## Production Supabase note
 
 The production data boundary remains Supabase Auth + `public.profiles` + RLS-protected application tables. Legacy JSON/Prisma code remains only for compatibility and local/demo operation; it is not the production Supabase source of truth.
+
+
+### Repository asset verification
+
+The official supplied artwork is now stored as a self-contained SVG asset in both portal trees:
+
+- client-portal/assets/ecostream-logo.svg
+- admin-portal/assets/ecostream-logo.svg
+
+Both files were fetched from the current main branch and have the same content SHA. The portal HTML references the SVG asset rather than an embedded base64 logo payload.
