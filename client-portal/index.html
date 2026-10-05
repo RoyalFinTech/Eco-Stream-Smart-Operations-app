@@ -444,9 +444,9 @@ function renderAuth(){
     </div>
   </div>`;
 }
-function phoneField(name="phone", value=""){
+function phoneField(name="phone", value="87"){
   return `<div class="field"><label>Gambian Mobile Number</label>
-    <div class="phone-control"><span class="phone-country">🇬🇲 +220</span><input name="${name}" value="${esc(value)}" required inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" placeholder="87 ••• ••• 7"></div>
+    <div class="phone-control"><span class="phone-country">🇬🇲 +220</span><input name="${name}" value="${esc(value || "87")}" required inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" placeholder="87 ••• ••• 7"></div>
     <div class="field-hint">Enter the 9-digit number after +220.</div>
   </div>`;
 }
