@@ -418,7 +418,7 @@ function statusBadge(status){
    ============================================================ */
 function renderAuth(){
   const mode = state.authMode;
-  app.innerHTML = \`
+  app.innerHTML = `
   <div class="auth-screen">
     <div class="auth-box">
       <div class="auth-logo">
@@ -426,11 +426,11 @@ function renderAuth(){
         <h1>EcoStream</h1>
         <p>Smart Borehole Operations</p>
       </div>
-      \${mode!=="reset" && mode!=="verify-phone" ? \`
+      \${mode!=="reset" && mode!=="verify-phone" ? `
       <div class="auth-tabs">
         <button data-action="auth-tab" data-mode="login" class="\${mode==='login'||mode==='forgot'?'active':''}">Sign In</button>
         <button data-action="auth-tab" data-mode="register" class="\${mode==='register'?'active':''}">Create Account</button>
-      </div>\`:""}
+      </div>`:""}
       <div class="auth-card">
         \${mode==="login" ? authLoginForm() : ""}
         \${mode==="register" ? authRegisterForm() : ""}
@@ -445,19 +445,19 @@ function renderAuth(){
       </div>
       <div class="auth-foot">EcoStream Ltd · +220 380 6666<br><span>Powered by Royal Fintech</span></div>
     </div>
-  </div>\`;
+  </div>`;
 }
 function phoneField(name="phone", value=""){
-  return \`<div class="field"><label>Gambian Mobile Number</label>
+  return `<div class="field"><label>Gambian Mobile Number</label>
     <div class="phone-control"><span class="phone-country">🇬🇲 +220</span><input name="\${name}" value="\${esc(value)}" required inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" placeholder="87 ••• ••• 7"></div>
     <div class="field-hint">Enter the 9-digit number after +220.</div>
-  </div>\`;
+  </div>`;
 }
 function pinField(name="pin", label="6-Digit PIN", autocomplete="current-password"){
-  return \`<div class="field"><label>\${label}</label><input type="password" name="\${name}" required inputmode="numeric" autocomplete="\${autocomplete}" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>\`;
+  return `<div class="field"><label>\${label}</label><input type="password" name="\${name}" required inputmode="numeric" autocomplete="\${autocomplete}" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>`;
 }
 function authLoginForm(){
-  return \`
+  return `
   <form data-form="login">
     \${phoneField()}
     \${pinField()}
@@ -468,10 +468,10 @@ function authLoginForm(){
     </div>
     <div class="divider"></div>
     <div class="field-hint" style="text-align:center;">Your PIN is protected by Supabase Auth. Never share it.</div>
-  </form>\`;
+  </form>`;
 }
 function authRegisterForm(){
-  return \`
+  return `
   <form data-form="register">
     <div class="field"><label>Full Name</label><input name="name" required autocomplete="name" placeholder="Your full name"></div>
     \${phoneField()}
@@ -479,32 +479,32 @@ function authRegisterForm(){
     <div class="field"><label>Address (optional)</label><input name="address" autocomplete="street-address" placeholder="Area / town"></div>
     <button class="btn btn-primary btn-block" type="submit">Create Secure Account</button>
     <div class="field-hint" style="margin-top:10px;text-align:center;">After signing in, you can enable device biometrics/passkey.</div>
-  </form>\`;
+  </form>`;
 }
 function authForgotForm(){
-  return \`
+  return `
   <div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Forgot your PIN? For account security, contact EcoStream support or an authorized administrator.</p>
     <div class="auth-support-card">🔒 PIN resets are handled through authorized EcoStream support. No email is required.</div>
     <button type="button" class="btn btn-outline btn-block" style="margin-top:14px;" data-action="auth-tab" data-mode="login">Back to sign in</button>
-  </div>\`;
+  </div>`;
 }
 function authResetForm(){
-  return \`
+  return `
   <form data-form="reset">
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Set a new 6-digit EcoStream PIN after your authorized reset.</p>
     \${pinField("newPassword","New 6-Digit PIN","new-password")}
     <button class="btn btn-primary btn-block" type="submit">Update PIN</button>
     <div style="text-align:center;margin-top:14px;"><button type="button" class="auth-link" style="color:var(--green);" data-action="auth-tab" data-mode="login">Back to sign in</button></div>
-  </form>\`;
+  </form>`;
 }
 function authVerifyPhoneForm(){
-  return \`
+  return `
   <form data-form="verify-phone">
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Enter the 6-digit verification code sent to your phone.</p>
     <div class="field"><label>Verification Code</label><input name="token" required inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>
     <button class="btn btn-primary btn-block" type="submit">Verify Phone</button>
-  </form>\`;
+  </form>`;
 }
 
 /* ============================================================
