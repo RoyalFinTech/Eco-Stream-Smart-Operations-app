@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoStream — Client Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   ECOSTREAM CLIENT PORTAL — design tokens
+   Palette: deep water-green + blue (water) + warm sand + charcoal
+   Display face: Fraunces (characterful serif for headings)
+   Body/UI face: Inter
+   Signature element: circular "depth gauge" — a borehole-specific
+   progress ring used for drilling/water-yield tracking, standing
+   in for the generic linear progress bar you'd see elsewhere.
+   ============================================================ */
+:root{
+  --green:#0B8F4D; --green-dark:#064D28; --green-deepest:#052E18;
+  --blue:#1565C0; --blue-light:#E8F2FC;
+  --sand:#F6F8F5; --sand-deep:#ECF1EC;
+  --charcoal:#16211B; --charcoal-soft:#3A4A42;
+  --amber:#F0932B; --amber-light:#FDF1E4;
+  --red:#D6534A; --red-light:#FBEAE8;
+  --card:#FFFFFF; --border:#E1E8E3; --text:#182620; --text-muted:#5B6E64; --text-faint:#8FA298;
+  --glass:rgba(255,255,255,.66); --glass-border:rgba(255,255,255,.5);
+  --radius:18px; --radius-sm:12px;
+  --shadow-soft:0 8px 30px rgba(10,40,25,.08);
+  --shadow-lift:0 16px 44px rgba(10,40,25,.14);
+  --font-display:'Fraunces', Georgia, serif;
+  --font-body:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+html[data-theme="dark"]{
+  --sand:#0D1712; --sand-deep:#0A130F;
+  --card:#152019; --border:#25342B; --text:#EAF2EC; --text-muted:#9CB0A5; --text-faint:#5F756A;
+  --glass:rgba(21,32,25,.6); --glass-border:rgba(255,255,255,.08);
+  --blue-light:#132A44; --amber-light:#3A2A10; --red-light:#3A1414;
+  --shadow-soft:0 8px 30px rgba(0,0,0,.35); --shadow-lift:0 20px 50px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-body); background:var(--sand); color:var(--text);
+  transition:background .25s ease, color .25s ease;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.display{font-family:var(--font-display);}
+a{color:inherit;}
+button,input,select,textarea{font-family:inherit; font-size:14px;}
+button{cursor:pointer;}
+::-webkit-scrollbar{width:6px; height:6px;}
+::-webkit-scrollbar-thumb{background:var(--border); border-radius:10px;}
+.sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);}
+:focus-visible{outline:2px solid var(--blue); outline-offset:2px;}
+
+@keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+@keyframes ripple{0%{stroke-dashoffset:283;} 100%{stroke-dashoffset:var(--target-offset);}}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+
+.view{animation:fadeUp .35s ease both;}
+
+/* ---------- buttons ---------- */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 20px; border-radius:12px; border:1.5px solid transparent; font-weight:600; font-size:14px; transition:transform .12s ease, box-shadow .2s ease, background .2s ease, opacity .15s ease;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--green); color:#fff; box-shadow:0 6px 18px rgba(11,143,77,.28);}
+.btn-primary:hover{background:var(--green-dark);}
+.btn-outline{background:transparent; border-color:var(--border); color:var(--text);}
+.btn-outline:hover{border-color:var(--green); color:var(--green);}
+.btn-danger{background:var(--red); color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.12); color:#fff; border:none;}
+.btn-sm{padding:7px 14px; font-size:12.5px; border-radius:9px;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.55; cursor:not-allowed;}
+
+/* ---------- forms ---------- */
+.field{margin-bottom:16px; text-align:left;}
+.field label{display:block; font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;}
+.field input, .field select, .field textarea{
+  width:100%; padding:12px 14px; border-radius:11px; border:1.5px solid var(--border); background:var(--card); color:var(--text);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--green); box-shadow:0 0 0 3px rgba(11,143,77,.12);}
+.field textarea{min-height:96px; resize:vertical;}
+.field-error{color:var(--red); font-size:12px; margin-top:5px; font-weight:600;}
+.field-hint{color:var(--text-faint); font-size:12px; margin-top:5px;}
+
+/* ---------- glass / cards ---------- */
+.glass{background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--glass-border);}
+.card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-soft); transition:transform .18s ease, box-shadow .18s ease;}
+.card-hover:hover{transform:translateY(-3px); box-shadow:var(--shadow-lift);}
+.card-pad{padding:20px;}
+
+/* ---------- badges ---------- */
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; letter-spacing:.02em; padding:4px 11px; border-radius:99px; text-transform:uppercase;}
+.badge-green{background:#E4F5EC; color:var(--green-dark);}
+.badge-blue{background:var(--blue-light); color:var(--blue);}
+.badge-amber{background:var(--amber-light); color:var(--amber);}
+.badge-red{background:var(--red-light); color:var(--red);}
+.badge-grey{background:var(--sand-deep); color:var(--text-muted);}
+html[data-theme="dark"] .badge-green{background:#0F3323;}
+
+/* ---------- depth gauge (signature element) ---------- */
+.gauge{position:relative; width:84px; height:84px; flex-shrink:0;}
+.gauge svg{transform:rotate(-90deg);}
+.gauge circle{fill:none; stroke-width:8;}
+.gauge .track{stroke:var(--sand-deep);}
+.gauge .fill{stroke:var(--blue); stroke-linecap:round; transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);}
+.gauge .fill.complete{stroke:var(--green);}
+.gauge-label{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.gauge-label b{font-size:16px; line-height:1;}
+.gauge-label span{font-size:9px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em;}
+
+/* ---------- toasts ---------- */
+#toast-root{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:8px; align-items:center;}
+.toast{background:var(--charcoal); color:#fff; padding:12px 20px; border-radius:99px; font-size:13px; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25); animation:fadeUp .25s ease;}
+.toast.error{background:var(--red);}
+.toast.success{background:var(--green-dark);}
+
+/* ---------- modal ---------- */
+.modal-overlay{position:fixed; inset:0; background:rgba(10,20,15,.55); backdrop-filter:blur(3px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .2s ease;}
+.modal{background:var(--card); border-radius:20px; width:100%; max-width:460px; max-height:88vh; overflow-y:auto; box-shadow:var(--shadow-lift); animation:fadeUp .25s ease;}
+.modal-header{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--border);}
+.modal-body{padding:22px;}
+.modal-footer{display:flex; gap:10px; padding:16px 22px; border-top:1px solid var(--border);}
+
+/* ---------- layout: auth ---------- */
+.auth-screen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:radial-gradient(circle at 20% 15%, var(--green-dark), var(--green-deepest) 60%);}
+.auth-box{width:100%; max-width:420px;}
+.auth-logo{display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:26px; color:#fff; text-align:center;}
+.auth-logo .mark{width:60px; height:60px; border-radius:16px; background:linear-gradient(135deg,var(--green),var(--blue)); display:flex; align-items:center; justify-content:center; font-size:28px;}
+.auth-logo h1{font-size:24px; letter-spacing:.02em;}
+.auth-logo p{font-size:12px; color:rgba(255,255,255,.55); text-transform:uppercase; letter-spacing:.12em; font-weight:700;}
+.auth-tabs{display:flex; gap:6px; background:rgba(255,255,255,.1); padding:4px; border-radius:14px; margin-bottom:18px;}
+.auth-tabs button{flex:1; padding:10px 0; border:none; background:transparent; color:rgba(255,255,255,.6); font-weight:700; font-size:13px; border-radius:10px;}
+.auth-tabs button.active{background:#fff; color:var(--green-dark);}
+.auth-card{background:#fff; border-radius:20px; padding:26px; box-shadow:0 30px 70px rgba(0,0,0,.35);}
+.auth-foot{text-align:center; margin-top:16px; color:rgba(255,255,255,.5); font-size:12px;}
+.auth-link{background:none; border:none; color:#fff; font-weight:700; text-decoration:underline; cursor:pointer; font-size:13px;}
+
+/* ---------- layout: app shell ---------- */
+.app-shell{min-height:100vh; display:flex;}
+.sidebar{width:230px; background:var(--charcoal); color:#fff; display:flex; flex-direction:column; flex-shrink:0; position:fixed; top:0; bottom:0; left:0; z-index:200;}
+.sidebar .brand{display:flex; align-items:center; gap:10px; padding:22px 20px; border-bottom:1px solid rgba(255,255,255,.08);}
+.sidebar .brand .mark{width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--green),var(--blue)); display:flex; align-items:center; justify-content:center; font-size:16px;}
+.sidebar .brand b{font-size:15px;}
+.sidebar .brand span{display:block; font-size:9px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.1em;}
+.nav-list{flex:1; overflow-y:auto; padding:14px 12px;}
+.nav-item{display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px; border-radius:11px; background:transparent; border:none; color:rgba(255,255,255,.62); font-size:13.5px; font-weight:600; margin-bottom:2px; text-align:left; transition:background .15s ease, color .15s ease;}
+.nav-item:hover{background:rgba(255,255,255,.06); color:#fff;}
+.nav-item.active{background:linear-gradient(135deg, var(--green), var(--green-dark)); color:#fff;}
+.nav-item .ic{width:18px; text-align:center; font-size:15px;}
+.sidebar-foot{padding:14px; border-top:1px solid rgba(255,255,255,.08);}
+
+.main{flex:1; margin-left:230px; display:flex; flex-direction:column; min-height:100vh;}
+.topbar{position:sticky; top:0; z-index:150; display:flex; align-items:center; gap:14px; padding:14px 28px; background:var(--glass); backdrop-filter:blur(14px); border-bottom:1px solid var(--border);}
+.topbar h2{font-size:18px;}
+.topbar .spacer{flex:1;}
+.icon-btn{width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:16px; position:relative; color:var(--text);}
+.icon-btn .dot{position:absolute; top:-2px; right:-2px; width:9px; height:9px; border-radius:50%; background:var(--red); border:2px solid var(--card);}
+.content{padding:26px 28px 90px; flex:1;}
+
+.mobile-nav{display:none;}
+.hamburger{display:none;}
+
+@media (max-width: 880px){
+  .sidebar{transform:translateX(-100%); transition:transform .25s ease; width:250px;}
+  .sidebar.open{transform:translateX(0); box-shadow:20px 0 50px rgba(0,0,0,.3);}
+  .main{margin-left:0;}
+  .hamburger{display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; border:1px solid var(--border); background:var(--card); font-size:18px;}
+  .sidebar-scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:190;}
+  .sidebar-scrim.show{display:block;}
+  .content{padding:18px 16px 100px;}
+  .topbar{padding:12px 16px;}
+}
+
+/* ---------- grids & misc ---------- */
+.grid{display:grid; gap:16px;}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+@media (max-width:700px){ .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;} }
+.stat-card{padding:18px; border-radius:16px; background:var(--card); border:1px solid var(--border);}
+.stat-card .num{font-family:var(--font-display); font-size:26px; font-weight:700;}
+.stat-card .lbl{font-size:12px; color:var(--text-muted); margin-top:4px;}
+.empty{text-align:center; padding:50px 20px; color:var(--text-muted);}
+.empty .ic{font-size:38px; margin-bottom:10px;}
+.section-title{font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin:22px 0 10px;}
+.divider{height:1px; background:var(--border); margin:16px 0;}
+.row{display:flex; align-items:center; gap:10px;}
+.row-between{display:flex; align-items:center; justify-content:space-between;}
+.chip{display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:99px; background:var(--sand-deep); font-size:12.5px; font-weight:600; border:1.5px solid transparent; cursor:pointer;}
+.chip.active{background:var(--green); color:#fff;}
+.list-item{display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--border);}
+.list-item:last-child{border-bottom:none;}
+.avatar{width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--green),var(--blue)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0;}
+.hero-band{background:linear-gradient(120deg, var(--green-dark), var(--green) 60%, var(--blue)); border-radius:22px; padding:26px; color:#fff; position:relative; overflow:hidden;}
+.hero-band::after{content:""; position:absolute; right:-40px; bottom:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,.14), transparent 70%);}
+.step-track{display:flex; gap:0; margin-bottom:22px;}
+.step-track .step{flex:1; text-align:center; position:relative; font-size:11px; font-weight:700; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em;}
+.step-track .step::before{content:""; display:block; width:26px; height:26px; border-radius:50%; background:var(--sand-deep); margin:0 auto 6px; line-height:26px; color:var(--text-muted);}
+.step-track .step.done::before{background:var(--green); }
+.step-track .step.active::before{background:var(--blue);}
+.chat-thread{display:flex; flex-direction:column; gap:10px; padding:6px 0;}
+.chat-bubble{max-width:75%; padding:11px 15px; border-radius:16px; font-size:13.5px; line-height:1.4;}
+.chat-bubble.me{align-self:flex-end; background:var(--green); color:#fff; border-bottom-right-radius:4px;}
+.chat-bubble.them{align-self:flex-start; background:var(--sand-deep); border-bottom-left-radius:4px;}
+.chat-bubble .meta{display:block; font-size:10px; opacity:.65; margin-top:4px;}
+.doc-row{display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:12px; margin-bottom:8px;}
+.doc-row .ic{font-size:20px;}
+.upload-drop{border:2px dashed var(--border); border-radius:14px; padding:26px; text-align:center; color:var(--text-muted); cursor:pointer; transition:border-color .15s ease, background .15s ease;}
+.upload-drop:hover{border-color:var(--green); background:var(--sand-deep);}
+.skeleton{background:linear-gradient(90deg, var(--sand-deep) 25%, var(--border) 37%, var(--sand-deep) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:8px;}
+@keyframes shimmer{0%{background-position:100% 0;} 100%{background-position:-100% 0;}}
+</style>
+</head>
+<body>
+<div id="toast-root"></div>
+<div id="app"></div>
+<script>
+/* ============================================================
+   ECOSTREAM CLIENT PORTAL — application logic
+   Vanilla JS, no build step. Talks to the EcoStream API (Node,
+   zero external deps) over fetch(). Views are template strings;
+   a single delegated click/submit handler dispatches on
+   data-action / data-form attributes instead of wiring one
+   listener per element.
+   ============================================================ */
+(function(){
+"use strict";
+
+/* ---------- config & state ---------- */
+const CONFIG = { apiBase: localStorage.getItem("eco_api_base") || "http://localhost:4000" };
+const state = {
+  token: localStorage.getItem("eco_token") || null,
+  refreshToken: localStorage.getItem("eco_refresh_token") || null,
+  user: JSON.parse(localStorage.getItem("eco_user") || "null"),
+  view: "dashboard",
+  authMode: "login", // login | register | forgot | reset
+  cache: {}, // simple per-view data cache populated by loaders
+  chatPoll: null,
+};
+
+const app = document.getElementById("app");
+
+/* ---------- helpers ---------- */
+function gmd(n){ return "GMD " + Number(n||0).toLocaleString(); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtDate(d){ if(!d) return "—"; try{ return new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }catch{ return d; } }
+function fmtDateTime(d){ try{ return new Date(d).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch{ return d; } }
+function initials(name){ return (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
+function toast(msg, type=""){
+  const root = document.getElementById("toast-root");
+  const t = document.createElement("div");
+  t.className = "toast " + type;
+  t.textContent = msg;
+  root.appendChild(t);
+  setTimeout(()=>{ t.style.opacity="0"; t.style.transition="opacity .3s"; setTimeout(()=>t.remove(),300); }, 2600);
+}
+
+/* ---------- API layer ---------- */
+async function api(path, opts={}){
+  const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
+  if(state.token) headers["Authorization"] = "Bearer " + state.token;
+  let res;
+  try{
+    res = await fetch(CONFIG.apiBase + path, { ...opts, headers });
+  }catch(e){
+    toast("Can't reach the EcoStream server at " + CONFIG.apiBase + ". Is it running?", "error");
+    throw e;
+  }
+  let data = {};
+  try{ data = await res.json(); }catch{ /* no body */ }
+
+  if(res.status === 401 && !opts._retried && state.refreshToken && path !== "/api/auth/refresh"){
+    // Access token expired — try a silent refresh once before giving up.
+    // This is what makes the refresh token actually useful day-to-day:
+    // without it, users would need to log in again every 12h even though
+    // a valid refresh token exists.
+    const refreshed = await trySilentRefresh();
+    if(refreshed) return api(path, { ...opts, _retried: true });
+  }
+  if(res.status === 401){
+    logout(false);
+    toast("Session expired — please log in again.", "error");
+    throw new Error("unauthorized");
+  }
+  if(!res.ok){
+    toast(data.error || "Something went wrong (" + res.status + ")", "error");
+    throw new Error(data.error || String(res.status));
+  }
+  return data;
+}
+
+async function trySilentRefresh(){
+  try{
+    const res = await fetch(CONFIG.apiBase + "/api/auth/refresh", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: state.refreshToken }),
+    });
+    if(!res.ok) return false;
+    const data = await res.json();
+    state.token = data.token; state.refreshToken = data.refreshToken;
+    localStorage.setItem("eco_token", data.token);
+    localStorage.setItem("eco_refresh_token", data.refreshToken);
+    return true;
+  }catch{ return false; }
+}
+
+function setAuth(token, refreshToken, user){
+  state.token = token; state.refreshToken = refreshToken; state.user = user;
+  localStorage.setItem("eco_token", token);
+  if(refreshToken) localStorage.setItem("eco_refresh_token", refreshToken);
+  localStorage.setItem("eco_user", JSON.stringify(user));
+}
+function logout(redirect=true){
+  const refreshToken = state.refreshToken;
+  state.token = null; state.refreshToken = null; state.user = null;
+  localStorage.removeItem("eco_token"); localStorage.removeItem("eco_refresh_token"); localStorage.removeItem("eco_user");
+  if(state.chatPoll) clearInterval(state.chatPoll);
+  state.authMode = "login";
+  if(refreshToken){
+    // Best-effort — revoke the session server-side so signing out actually
+    // invalidates the refresh token instead of just forgetting it locally.
+    fetch(CONFIG.apiBase + "/api/auth/logout", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({refreshToken})
+    }).catch(()=>{});
+  }
+  if(redirect){ state.view="dashboard"; render(); }
+}
+
+/* ---------- theme ---------- */
+function initTheme(){
+  const saved = localStorage.getItem("eco_theme") || "light";
+  document.documentElement.setAttribute("data-theme", saved);
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("eco_theme", next);
+  render();
+}
+
+/* ---------- gauge (signature element) ---------- */
+function gauge(depth, total, size=84){
+  const pct = total>0 ? Math.min(100, Math.round(depth/total*100)) : 0;
+  const r = 36, c = 2*Math.PI*r;
+  const offset = c - (pct/100)*c;
+  const complete = pct>=100;
+  return `<div class="gauge" style="width:${size}px;height:${size}px;">
+    <svg width="${size}" height="${size}" viewBox="0 0 84 84">
+      <circle class="track" cx="42" cy="42" r="${r}"></circle>
+      <circle class="fill ${complete?'complete':''}" cx="42" cy="42" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"></circle>
+    </svg>
+    <div class="gauge-label"><b>${pct}%</b><span>${depth}/${total}m</span></div>
+  </div>`;
+}
+
+function statusBadge(status){
+  const map = {
+    pending:["badge-amber","Pending"], approved:["badge-blue","Approved"],
+    ongoing:["badge-blue","Ongoing"], "in-progress":["badge-blue","In Progress"],
+    completed:["badge-green","Completed"], rejected:["badge-red","Rejected"],
+    paid:["badge-green","Paid"], open:["badge-amber","Open"],
+    "in progress":["badge-blue","In Progress"], resolved:["badge-green","Resolved"],
+    suspended:["badge-red","Suspended"], active:["badge-green","Active"],
+  };
+  const [cls,label] = map[status] || ["badge-grey", status||"—"];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+/* ============================================================
+   AUTH VIEWS
+   ============================================================ */
+function renderAuth(){
+  const mode = state.authMode;
+  app.innerHTML = `
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <div class="mark" style="background:#fff;padding:4px;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACVCAMAAADopgEBAAAA/1BMVEVfmWBfrcya2OSg2Zwpq9Vi0OMlZi7X6+AsoSUUZp6QspIkiblpz10PXlpXlLGJuNBIdkor2RAb0O9KzTiE1X1EtTnB6b0IXsAALwD9/v0CdsYCVgYStwMDZ7UNqAMaxQIFRwYpyAUm1gYFlwQoxvIKmdINpdYmuAcHdLkHh8kDagQFdQUFhwUDXKoBbMIPt+fP6O4u1/LR5tEWx+0AOgEc1AEOqOTI2cku5fmx2OStx67W8vWz5u6Rxtmz17IStdoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ389LAAAAQHRSTlP/////////////////////////////////////////////////////////////////////////////////////73leyQAAFGtJREFUeNrtnOd64sqyhpVASAhwmFl7E0QwSYANsrBhiL7/uzpV1d1StySiPc9eP05NsLENvHwVu1tYq//LTfv5h7RN0/Q875nMI4Ov2Pa/ARDYvMdep/P5CX9Ve3l5RtB/7P8doPnLA7YOwaTskYx959n7dYucPwVoes8dtM9O56XT68HfHMqXBBPUvE7MHwG0fz33CI//Tx+AMCulkPMFKR/R5/bfB/zHG7c6ifUYXwfDEBnzXM6Nh+YvM/qLgKbXQiP1YgF7PcIkQKbjOcjPTo8SKLJ/DDA6Cud6BNfpyBoyWKYkaHSSTaX8fOmNvR8BjExP44DmuMWtkwbkiLzEfJ7Cog/8Zi8vILWbK533+PnMHijSWomdIoSsfpEo0owUh/QSep79/Rj8x8MqwfnMUku1lI87PBQhnXs9JVV67BufGKUYgljYvej7SWJ6WCQEn9dW8ca9To71RL589pBLsJFBmXlBPIhgzfx+FiPeI7iC82kpvufnXtrPCSCzT6FbpzV+xP5seuyHWt73ywzHg2ZArzUqJXzwWfs5rjapUOz1krpDyo3Hz8BGjygkL5nfLtQR+OKRhY/gazNC/NAumZAvnTxCNW1aCGezVCuJH2159rc7ifn48vgi8dnA12/H5tlyuTnBiHDHiJUpbZy8krH57VZHuYFwLy8dFixaH/j6fWLsl451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" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div>
+        <h1>EcoStream</h1>
+        <p>Borehole Drilling Services</p>
+      </div>
+      ${mode!=="reset" ? `
+      <div class="auth-tabs">
+        <button data-action="auth-tab" data-mode="login" class="${mode==='login'||mode==='forgot'?'active':''}">Sign In</button>
+        <button data-action="auth-tab" data-mode="register" class="${mode==='register'?'active':''}">Create Account</button>
+      </div>`:""}
+      <div class="auth-card">
+        ${mode==="login" ? authLoginForm() : ""}
+        ${mode==="register" ? authRegisterForm() : ""}
+        ${mode==="forgot" ? authForgotForm() : ""}
+        ${mode==="reset" ? authResetForm() : ""}
+      </div>
+      <div class="auth-foot">EcoStream Ltd · Banjul, The Gambia · +220 380 6666</div>
+    </div>
+  </div>`;
+}
+
+function authLoginForm(){
+  return `
+  <form data-form="login">
+    <div class="field"><label>Email</label><input type="email" name="email" required placeholder="you@example.com"></div>
+    <div class="field"><label>Password</label><input type="password" name="password" required placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-block" type="submit">Sign In</button>
+    <div style="text-align:center;margin-top:14px;">
+      <button type="button" class="auth-link" style="color:var(--green);" data-action="auth-tab" data-mode="forgot">Forgot password?</button>
+    </div>
+    <div class="divider"></div>
+    <div class="field-hint" style="text-align:center;">Use your EcoStream account credentials.</div>
+  </form>`;
+}
+function authRegisterForm(){
+  return `
+  <form data-form="register">
+    <div class="field"><label>Full Name</label><input name="name" required placeholder="Your full name"></div>
+    <div class="field"><label>Email</label><input type="email" name="email" required placeholder="you@example.com"></div>
+    <div class="field"><label>Phone</label><input name="phone" required placeholder="+220 ..."></div>
+    <div class="field"><label>Address (optional)</label><input name="address" placeholder="Area / town"></div>
+    <div class="field"><label>Password</label><input type="password" name="password" required minlength="8" placeholder="At least 8 characters"></div>
+    <button class="btn btn-primary btn-block" type="submit">Create Account</button>
+  </form>`;
+}
+function authForgotForm(){
+  return `
+  <form data-form="forgot">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Enter your email and we'll help you reset your password.</p>
+    <div class="field"><label>Email</label><input type="email" name="email" required placeholder="you@example.com"></div>
+    <button class="btn btn-primary btn-block" type="submit">Send Reset Link</button>
+    <div style="text-align:center;margin-top:14px;">
+      <button type="button" class="auth-link" style="color:var(--green);" data-action="auth-tab" data-mode="login">Back to sign in</button>
+    </div>
+  </form>`;
+}
+function authResetForm(){
+  return `
+  <form data-form="reset">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">A password reset token will be sent to your registered email address.</p>
+    <div class="field"><label>Reset Token</label><input name="token" required placeholder="paste dev token"></div>
+    <div class="field"><label>New Password</label><input type="password" name="newPassword" required minlength="8" placeholder="At least 8 characters"></div>
+    <button class="btn btn-primary btn-block" type="submit">Reset Password</button>
+    <div style="text-align:center;margin-top:14px;">
+      <button type="button" class="auth-link" style="color:var(--green);" data-action="auth-tab" data-mode="login">Back to sign in</button>
+    </div>
+  </form>`;
+}
+
+/* ============================================================
+   APP SHELL (authenticated)
+   ============================================================ */
+const NAV = [
+  ["dashboard","🏠","Dashboard"],
+  ["book","➕","Book Drilling"],
+  ["projects","🗺️","Project Tracking"],
+  ["invoices","🧾","Payments & Invoices"],
+  ["documents","📁","Documents & Reports"],
+  ["support","🎫","Support Tickets"],
+  ["chat","💬","Chat with Company"],
+  ["notifications","🔔","Notifications"],
+  ["profile","👤","Profile & Settings"],
+];
+
+function renderShell(innerHtml, title){
+  const theme = document.documentElement.getAttribute("data-theme");
+  app.innerHTML = `
+  <div class="app-shell">
+    <div class="sidebar-scrim" data-action="close-sidebar"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><div class="mark" style="background:#fff;padding:4px;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACVCAMAAADopgEBAAAA/1BMVEVfmWBfrcya2OSg2Zwpq9Vi0OMlZi7X6+AsoSUUZp6QspIkiblpz10PXlpXlLGJuNBIdkor2RAb0O9KzTiE1X1EtTnB6b0IXsAALwD9/v0CdsYCVgYStwMDZ7UNqAMaxQIFRwYpyAUm1gYFlwQoxvIKmdINpdYmuAcHdLkHh8kDagQFdQUFhwUDXKoBbMIPt+fP6O4u1/LR5tEWx+0AOgEc1AEOqOTI2cku5fmx2OStx67W8vWz5u6Rxtmz17IStdoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ389LAAAAQHRSTlP/////////////////////////////////////////////////////////////////////////////////////73leyQAAFGtJREFUeNrtnOd64sqyhpVASAhwmFl7E0QwSYANsrBhiL7/uzpV1d1StySiPc9eP05NsLENvHwVu1tYq//LTfv5h7RN0/Q875nMI4Ov2Pa/ARDYvMdep/P5CX9Ve3l5RtB/7P8doPnLA7YOwaTskYx959n7dYucPwVoes8dtM9O56XT68HfHMqXBBPUvE7MHwG0fz33CI//Tx+AMCulkPMFKR/R5/bfB/zHG7c6ifUYXwfDEBnzXM6Nh+YvM/qLgKbXQiP1YgF7PcIkQKbjOcjPTo8SKLJ/DDA6Cud6BNfpyBoyWKYkaHSSTaX8fOmNvR8BjExP44DmuMWtkwbkiLzEfJ7Cog/8Zi8vILWbK533+PnMHijSWomdIoSsfpEo0owUh/QSep79/Rj8x8MqwfnMUku1lI87PBQhnXs9JVV67BufGKUYgljYvej7SWJ6WCQEn9dW8ca9To71RL589pBLsJFBmXlBPIhgzfx+FiPeI7iC82kpvufnXtrPCSCzT6FbpzV+xP5seuyHWt73ywzHg2ZArzUqJXzwWfs5rjapUOz1krpDyo3Hz8BGjygkL5nfLtQR+OKRhY/gazNC/NAumZAvnTxCNW1aCGezVCuJH2159rc7ifn48vgi8dnA12/H5tlyuTnBiHDHiJUpbZy8krH57VZHuYFwLy8dFixaH/j6fWLsl451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" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div><div><b>EcoStream</b><span>Client Portal</span></div></div>
+      <nav class="nav-list">
+        ${NAV.map(([id,ic,label])=>`<button class="nav-item ${state.view===id?'active':''}" data-action="nav" data-view="${id}"><span class="ic">${ic}</span>${label}</button>`).join("")}
+      </nav>
+      <div class="sidebar-foot"><button class="btn btn-ghost btn-block" data-action="logout">🚪 Sign Out</button></div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <button class="hamburger" data-action="toggle-sidebar">☰</button>
+        <h2>${title}</h2>
+        <div class="spacer"></div>
+        <button class="icon-btn" data-action="toggle-theme" title="Toggle dark mode">${theme==="dark"?"☀️":"🌙"}</button>
+        <button class="icon-btn" data-action="nav" data-view="notifications" title="Notifications">🔔${state.cache.unreadCount?'<span class="dot"></span>':''}</button>
+        <div class="avatar" style="width:38px;height:38px;">${initials(state.user.name)}</div>
+      </div>
+      <div class="content view" id="view-root">${innerHtml}</div>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   VIEW: DASHBOARD
+   ============================================================ */
+async function loadDashboard(){
+  renderShell(loadingSkeleton(), "Dashboard");
+  try{
+    const [summary, projRes, notifRes] = await Promise.all([
+      api("/api/dashboard/client"),
+      api("/api/projects"),
+      api("/api/notifications"),
+    ]);
+    state.cache.unreadCount = notifRes.notifications.filter(n=>!n.read).length;
+    renderShell(dashboardHtml(summary, projRes.projects), "Dashboard");
+  }catch(e){ renderShell(errorState("Couldn't load your dashboard."), "Dashboard"); }
+}
+function loadingSkeleton(){
+  return `<div class="grid grid-4">${[1,2,3,4].map(()=>`<div class="skeleton" style="height:90px;"></div>`).join("")}</div>`;
+}
+function errorState(msg){
+  return `<div class="empty"><div class="ic">⚠️</div><div>${esc(msg)}</div><button class="btn btn-outline" style="margin-top:14px;" data-action="reload">Try again</button></div>`;
+}
+function dashboardHtml(summary, projects){
+  const active = projects.find(p=>p.status==="ongoing");
+  return `
+  <div class="hero-band" style="margin-bottom:20px;">
+    <div style="position:relative;z-index:1;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;opacity:.85;font-weight:700;">Welcome back</div>
+      <h1 class="display" style="font-size:26px;margin:4px 0 6px;">${esc(state.user.name)}</h1>
+      <div style="font-size:13px;opacity:.85;max-width:440px;">Track your borehole project, manage payments, and reach our team — all in one place.</div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" style="background:rgba(255,255,255,.18);" data-action="nav" data-view="book">➕ Book Drilling</button>
+        <button class="btn btn-ghost" style="background:rgba(255,255,255,.18);" data-action="nav" data-view="chat">💬 Chat with Us</button>
+      </div>
+    </div>
+  </div>
+  <div class="grid grid-4">
+    <div class="stat-card"><div class="num">${summary.activeProjects}</div><div class="lbl">Active Projects</div></div>
+    <div class="stat-card"><div class="num">${summary.completedProjects}</div><div class="lbl">Completed Projects</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--green);">${gmd(summary.totalPaid)}</div><div class="lbl">Total Paid</div></div>
+    <div class="stat-card"><div class="num" style="color:${summary.totalDue>0?'var(--amber)':'inherit'};">${gmd(summary.totalDue)}</div><div class="lbl">Outstanding Balance</div></div>
+  </div>
+  ${active ? `
+  <div class="section-title">Current Project</div>
+  <div class="card card-pad" style="display:flex;gap:18px;align-items:center;">
+    ${gauge(active.depth, active.totalDepth, 96)}
+    <div style="flex:1;">
+      <div class="row-between"><b>📍 ${esc(active.location)}</b>${statusBadge(active.status)}</div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">${esc(active.notes||"Drilling in progress.")}</div>
+      <button class="btn btn-outline btn-sm" style="margin-top:12px;" data-action="nav" data-view="projects">View Full Timeline →</button>
+    </div>
+  </div>` : `
+  <div class="section-title">Projects</div>
+  <div class="card empty"><div class="ic">🗺️</div>No active project yet.<br><button class="btn btn-primary btn-sm" style="margin-top:12px;" data-action="nav" data-view="book">Book Your First Drilling</button></div>`}
+  `;
+}
+
+/* ============================================================
+   VIEW: BOOK DRILLING / SITE SURVEY
+   ============================================================ */
+function loadBook(){
+  renderShell(bookHtml(), "Book Drilling / Site Survey");
+}
+function bookHtml(){
+  return `
+  <div class="chip-row" style="margin-bottom:18px;display:flex;gap:8px;">
+    <button class="chip active" data-action="book-type" data-type="drilling" id="chip-drilling">💧 Drilling Request</button>
+    <button class="chip" data-action="book-type" data-type="site-survey" id="chip-survey">📐 Site Survey</button>
+  </div>
+  <div class="card card-pad" style="max-width:560px;">
+    <form data-form="booking">
+      <input type="hidden" name="requestType" value="drilling" id="requestTypeInput">
+      <div class="field"><label>Location *</label><input name="drillingLocation" required placeholder="e.g. Bakau, The Gambia"></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Package</label><select name="package"><option value="standard">Standard</option><option value="solar">Solar-Powered</option><option value="premium">Premium</option></select></div>
+        <div class="field"><label>Area Type</label><select name="areaType"><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="agricultural">Agricultural</option></select></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="field"><label>Purpose</label><select name="purpose"><option value="drinking">Drinking Water</option><option value="irrigation">Irrigation</option><option value="livestock">Livestock</option><option value="general">General Use</option></select></div>
+        <div class="field"><label>Payment Plan</label><select name="paymentPlan"><option value="full">Pay in Full</option><option value="installment">Installment</option></select></div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Submit Request</button>
+    </form>
+  </div>`;
+}
+
+/* ============================================================
+   VIEW: PROJECT TRACKING
+   ============================================================ */
+async function loadProjects(){
+  renderShell(loadingSkeleton(), "Project Tracking");
+  try{
+    const { projects } = await api("/api/projects");
+    state.cache.projects = projects;
+    renderShell(projectsHtml(projects), "Project Tracking");
+  }catch(e){ renderShell(errorState("Couldn't load your projects."), "Project Tracking"); }
+}
+function projectsHtml(projects){
+  if(!projects.length) return `<div class="card empty"><div class="ic">🗺️</div>No projects yet.<br><button class="btn btn-primary btn-sm" style="margin-top:12px;" data-action="nav" data-view="book">Book Your First Drilling</button></div>`;
+  return `<div class="grid grid-2">${projects.map(p=>`
+    <div class="card card-pad card-hover" style="cursor:pointer;" data-action="open-project" data-id="${p.id}">
+      <div class="row-between" style="margin-bottom:12px;">
+        <b>📍 ${esc(p.location)}</b>${statusBadge(p.status)}
+      </div>
+      <div class="row" style="gap:16px;">
+        ${gauge(p.depth, p.totalDepth, 72)}
+        <div style="font-size:12.5px;color:var(--text-muted);">
+          <div>Started ${fmtDate(p.startDate)}</div>
+          <div>Soil: ${esc(p.soilType||"—")}</div>
+          <div>Water yield: ${p.waterYield>0?p.waterYield+" m³/h":"Not yet reached"}</div>
+        </div>
+      </div>
+    </div>`).join("")}</div>`;
+}
+async function openProjectDetail(id){
+  const project = (state.cache.projects||[]).find(p=>p.id===id);
+  if(!project) return;
+  let timeline = [];
+  try{ const t = await api("/api/projects/timeline/"+id); timeline = t.timeline; }catch{}
+  showModal(`📍 ${esc(project.location)}`, `
+    <div style="display:flex;gap:18px;align-items:center;margin-bottom:18px;">
+      ${gauge(project.depth, project.totalDepth, 88)}
+      <div>${statusBadge(project.status)}<div style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">${esc(project.notes||"No notes yet.")}</div></div>
+    </div>
+    <div class="section-title" style="margin-top:0;">Timeline</div>
+    <div style="max-height:220px;overflow-y:auto;">
+      ${timeline.length ? timeline.map(t=>`<div class="list-item"><div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--sand-deep);color:var(--text-muted);">●</div><div><div style="font-size:13px;font-weight:600;">${esc(t.label)}</div><div style="font-size:11px;color:var(--text-faint);">${fmtDateTime(t.date)}</div></div></div>`).join("") : `<div class="field-hint">No timeline events recorded yet.</div>`}
+    </div>
+  `, `<button class="btn btn-outline btn-block" data-action="close-modal">Close</button>`);
+}
+
+/* ============================================================
+   VIEW: PAYMENTS & INVOICES
+   ============================================================ */
+async function loadInvoices(){
+  renderShell(loadingSkeleton(), "Payments & Invoices");
+  try{
+    const { invoices } = await api("/api/invoices");
+    state.cache.invoices = invoices;
+    renderShell(invoicesHtml(invoices), "Payments & Invoices");
+  }catch(e){ renderShell(errorState("Couldn't load invoices."), "Payments & Invoices"); }
+}
+function invoicesHtml(invoices){
+  const paid = invoices.filter(i=>i.status==="paid").reduce((s,i)=>s+i.amount,0);
+  const due = invoices.filter(i=>i.status!=="paid").reduce((s,i)=>s+i.amount,0);
+  return `
+  <div class="grid grid-2" style="margin-bottom:20px;">
+    <div class="stat-card"><div class="num" style="color:var(--green);">${gmd(paid)}</div><div class="lbl">Total Paid</div></div>
+    <div class="stat-card"><div class="num" style="color:${due>0?'var(--amber)':'inherit'};">${gmd(due)}</div><div class="lbl">Outstanding</div></div>
+  </div>
+  ${!invoices.length ? `<div class="card empty"><div class="ic">🧾</div>No invoices yet.</div>` :
+  `<div class="card card-pad">${invoices.map(i=>`
+    <div class="list-item">
+      <div class="avatar" style="background:${i.status==='paid'?'linear-gradient(135deg,var(--green),var(--green-dark))':'linear-gradient(135deg,var(--amber),#c9701d)'};">🧾</div>
+      <div style="flex:1;">
+        <div class="row-between"><b>${gmd(i.amount)}</b>${statusBadge(i.status)}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${i.invoiceNumber} · ${fmtDate(i.date)} · ${esc(i.method)}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" data-action="view-invoice" data-id="${i.id}">View</button>
+    </div>`).join("")}</div>`}
+  `;
+}
+function openInvoice(id){
+  const inv = (state.cache.invoices||[]).find(i=>i.id===id);
+  if(!inv) return;
+  showModal("Invoice " + inv.invoiceNumber, `
+    <div class="invoice-print">
+      <div class="row-between" style="margin-bottom:18px;">
+        <div><b style="font-family:var(--font-display);font-size:18px;">EcoStream Ltd</b><div style="font-size:11px;color:var(--text-muted);">Borehole Drilling Services</div></div>
+        <div style="text-align:right;"><b style="color:var(--green);">INVOICE</b><div style="font-size:11px;color:var(--text-muted);">${inv.invoiceNumber}</div></div>
+      </div>
+      <div class="row-between" style="font-size:13px;margin-bottom:14px;"><span>Billed to</span><b>${esc(state.user.name)}</b></div>
+      <div class="row-between" style="font-size:13px;margin-bottom:14px;"><span>Date</span><span>${fmtDate(inv.date)}</span></div>
+      <div class="row-between" style="font-size:13px;margin-bottom:14px;"><span>Method</span><span>${esc(inv.method)}</span></div>
+      <div class="row-between" style="font-size:13px;margin-bottom:14px;">${statusBadge(inv.status)}</div>
+      <div class="divider"></div>
+      <div class="row-between" style="font-size:17px;font-weight:800;"><span>Total</span><span style="color:var(--green);">${gmd(inv.amount)}</span></div>
+    </div>
+  `, `<button class="btn btn-outline" data-action="close-modal">Close</button><button class="btn btn-primary btn-block" data-action="print-invoice">⬇ Download / Print</button>`);
+}
+
+/* ============================================================
+   VIEW: DOCUMENTS
+   ============================================================ */
+async function loadDocuments(){
+  renderShell(loadingSkeleton(), "Documents & Reports");
+  try{
+    const { documents } = await api("/api/documents");
+    renderShell(documentsHtml(documents), "Documents & Reports");
+  }catch(e){ renderShell(errorState("Couldn't load documents."), "Documents & Reports"); }
+}
+const DOC_ICONS = { report:"📄", "water-test":"🧪", contract:"📜", other:"📁" };
+function documentsHtml(documents){
+  return `
+  <div class="card card-pad" style="margin-bottom:18px;">
+    <div class="upload-drop" data-action="pick-file">
+      <div style="font-size:28px;margin-bottom:8px;">⬆️</div>
+      <b>Upload a document</b>
+      <div style="font-size:12px;margin-top:4px;">Borehole reports, water test results, contracts (max ~6MB)</div>
+    </div>
+    <input type="file" id="file-input" style="display:none;">
+    <div class="field" style="margin-top:14px;">
+      <label>Category</label>
+      <select id="doc-category">
+        <option value="report">Borehole Report</option>
+        <option value="water-test">Water Test Result</option>
+        <option value="contract">Contract</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="section-title">Your Files</div>
+  ${!documents.length ? `<div class="card empty"><div class="ic">📁</div>No documents uploaded yet.</div>` :
+  documents.map(d=>`
+    <div class="doc-row">
+      <div class="ic">${DOC_ICONS[d.category]||"📁"}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:13.5px;">${esc(d.fileName)}</div>
+        <div style="font-size:11.5px;color:var(--text-muted);">${d.category} · ${fmtDate(d.createdAt)}</div>
+      </div>
+      <button class="btn btn-outline btn-sm" data-action="download-doc" data-id="${d.id}" data-name="${esc(d.fileName)}">Download</button>
+    </div>`).join("")}
+  `;
+}
+
+/* ============================================================
+   VIEW: SUPPORT TICKETS
+   ============================================================ */
+async function loadSupport(){
+  renderShell(loadingSkeleton(), "Support Tickets");
+  try{
+    const { tickets } = await api("/api/tickets");
+    state.cache.tickets = tickets;
+    renderShell(supportHtml(tickets), "Support Tickets");
+  }catch(e){ renderShell(errorState("Couldn't load tickets."), "Support Tickets"); }
+}
+function supportHtml(tickets){
+  return `
+  <div class="row-between" style="margin-bottom:16px;">
+    <div style="font-size:13px;color:var(--text-muted);">Need help with your pump, drilling, or billing?</div>
+    <button class="btn btn-primary btn-sm" data-action="new-ticket">+ New Ticket</button>
+  </div>
+  ${!tickets.length ? `<div class="card empty"><div class="ic">🎫</div>No support tickets yet.</div>` :
+  `<div class="card card-pad">${tickets.map(t=>`
+    <div class="list-item" style="cursor:pointer;" data-action="open-ticket" data-id="${t.id}">
+      <div class="avatar" style="background:var(--sand-deep);color:var(--text-muted);">🎫</div>
+      <div style="flex:1;">
+        <div class="row-between"><b>${esc(t.subject)}</b>${statusBadge(t.status)}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${t.ticketNumber} · ${esc(t.location||"—")}</div>
+      </div>
+    </div>`).join("")}</div>`}
+  `;
+}
+function openTicket(id){
+  const t = (state.cache.tickets||[]).find(x=>x.id===id);
+  if(!t) return;
+  showModal(t.subject, `
+    <div class="row" style="margin-bottom:12px;">${statusBadge(t.status)}<span class="badge badge-grey">${t.category}</span></div>
+    <div style="font-size:13.5px;background:var(--sand-deep);padding:12px;border-radius:10px;margin-bottom:16px;">${esc(t.description)}</div>
+    ${(t.replies&&t.replies.length) ? `<div class="section-title" style="margin-top:0;">Replies</div>${t.replies.map(r=>`<div style="background:var(--blue-light);padding:10px 12px;border-radius:10px;margin-bottom:8px;"><b style="font-size:12px;color:var(--blue);">${esc(r.author)}</b><div style="font-size:13px;margin-top:3px;">${esc(r.message)}</div></div>`).join("")}` : ""}
+  `, `<button class="btn btn-outline btn-block" data-action="close-modal">Close</button>`);
+}
+function newTicketForm(){
+  showModal("New Support Ticket", `
+    <form data-form="ticket">
+      <div class="field"><label>Subject *</label><input name="subject" required placeholder="Brief summary"></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Category</label><select name="category"><option value="pump-issue">Pump Issue</option><option value="water-quality">Water Quality</option><option value="billing">Billing</option><option value="maintenance">Maintenance</option><option value="general">General</option></select></div>
+        <div class="field"><label>Priority</label><select name="priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+      </div>
+      <div class="field"><label>Location</label><input name="location" placeholder="Site location"></div>
+      <div class="field"><label>Description *</label><textarea name="description" required placeholder="Describe the issue in detail"></textarea></div>
+      <button class="btn btn-primary btn-block" type="submit">Submit Ticket</button>
+    </form>
+  `, "");
+}
+
+/* ============================================================
+   VIEW: CHAT
+   ============================================================ */
+async function loadChat(){
+  renderShell(`<div id="chat-container">${loadingSkeleton()}</div>`, "Chat with Company");
+  await refreshChat();
+  state.chatPoll = setInterval(refreshChat, 4000);
+}
+async function refreshChat(){
+  try{
+    const { messages } = await api("/api/chat/me");
+    const el = document.getElementById("chat-container");
+    if(!el) return; // navigated away
+    el.innerHTML = chatHtml(messages);
+    const thread = document.getElementById("chat-thread");
+    if(thread) thread.scrollTop = thread.scrollHeight;
+  }catch(e){}
+}
+function chatHtml(messages){
+  return `
+  <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 230px);max-height:560px;">
+    <div class="chat-thread" id="chat-thread" style="flex:1;overflow-y:auto;padding:18px;">
+      ${!messages.length ? `<div class="empty"><div class="ic">💬</div>Say hello — our team typically replies within a few hours.</div>` :
+      messages.map(m=>`<div class="chat-bubble ${m.sender==='client'?'me':'them'}">${esc(m.message)}<span class="meta">${m.sender==='client'?'You':esc(m.senderName)} · ${fmtDateTime(m.createdAt)}</span></div>`).join("")}
+    </div>
+    <form data-form="chat" style="display:flex;gap:10px;padding:14px;border-top:1px solid var(--border);">
+      <input name="message" placeholder="Type a message…" required style="flex:1;padding:11px 14px;border-radius:11px;border:1.5px solid var(--border);background:var(--card);color:var(--text);">
+      <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+  </div>`;
+}
+
+/* ============================================================
+   VIEW: NOTIFICATIONS
+   ============================================================ */
+async function loadNotifications(){
+  renderShell(loadingSkeleton(), "Notifications");
+  try{
+    const { notifications } = await api("/api/notifications");
+    state.cache.unreadCount = notifications.filter(n=>!n.read).length;
+    renderShell(notificationsHtml(notifications), "Notifications");
+  }catch(e){ renderShell(errorState("Couldn't load notifications."), "Notifications"); }
+}
+const NOTIF_ICONS = { payment:"💳", maintenance:"🔧", project:"📍", system:"🔔" };
+function notificationsHtml(items){
+  if(!items.length) return `<div class="card empty"><div class="ic">✅</div>All caught up — no notifications.</div>`;
+  return `<div class="card card-pad">${items.map(n=>`
+    <div class="list-item" style="cursor:pointer;background:${n.read?'transparent':'var(--blue-light)'};border-radius:10px;padding-left:10px;" data-action="mark-read" data-id="${n.id}">
+      <div style="font-size:20px;">${NOTIF_ICONS[n.type]||"🔔"}</div>
+      <div style="flex:1;">
+        <b style="font-size:13.5px;">${esc(n.title)}</b>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">${esc(n.message)}</div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">${fmtDate(n.date)}</div>
+      </div>
+    </div>`).join("")}</div>`;
+}
+
+/* ============================================================
+   VIEW: PROFILE & SETTINGS
+   ============================================================ */
+function loadProfile(){
+  renderShell(profileHtml(), "Profile & Settings");
+  loadSessionsInto("sessions-panel");
+}
+async function loadSessionsInto(elId){
+  try{
+    const { sessions } = await api("/api/auth/sessions");
+    const el = document.getElementById(elId);
+    if(el) el.innerHTML = sessionsHtml(sessions);
+  }catch{}
+}
+function sessionsHtml(sessions){
+  if(!sessions.length) return `<div style="padding:14px 18px;font-size:12.5px;color:var(--text-muted);">No active sessions found.</div>`;
+  return sessions.map(s=>`
+    <div class="row-between" style="padding:12px 18px;border-bottom:1px solid var(--border);">
+      <div><b style="font-size:13px;">${esc(s.device)}</b><div style="font-size:11px;color:var(--text-faint);">Last active ${fmtDate(s.lastUsedAt)}</div></div>
+      <button class="btn btn-outline btn-sm" data-action="revoke-session" data-id="${s.id}">Sign out</button>
+    </div>`).join("");
+}
+function profileHtml(){
+  const theme = document.documentElement.getAttribute("data-theme");
+  return `
+  <div class="card card-pad" style="text-align:center;max-width:420px;margin-bottom:18px;">
+    <div class="avatar" style="width:64px;height:64px;font-size:22px;margin:0 auto 12px;">${initials(state.user.name)}</div>
+    <b style="font-size:17px;">${esc(state.user.name)}</b>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">${esc(state.user.email||"")}</div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">${esc(state.user.phone||"No phone on file")}${state.user.address?" · "+esc(state.user.address):""}</div>
+    <button class="btn btn-outline btn-sm" style="margin-top:12px;" data-action="edit-profile">✏️ Edit Profile</button>
+  </div>
+  <div class="card" style="max-width:420px;margin-bottom:18px;">
+    <div class="row-between" style="padding:14px 18px;border-bottom:1px solid var(--border);"><b style="font-size:13px;">Dark Mode</b>
+      <button class="btn btn-sm ${theme==='dark'?'btn-primary':'btn-outline'}" data-action="toggle-theme">${theme==='dark'?'🌙 On':'☀️ Off'}</button>
+    </div>
+    <div class="row-between" style="padding:14px 18px;">
+      <b style="font-size:13px;">API Server</b>
+      <button class="btn btn-outline btn-sm" data-action="edit-api">${esc(CONFIG.apiBase)}</button>
+    </div>
+  </div>
+  <div class="card" style="max-width:420px;margin-bottom:18px;">
+    <div class="row-between" style="padding:14px 18px;border-bottom:1px solid var(--border);">
+      <b style="font-size:13px;">Signed-in Devices</b>
+      <button class="btn btn-outline btn-sm" data-action="revoke-all-sessions">Sign out all</button>
+    </div>
+    <div id="sessions-panel"><div style="padding:14px 18px;font-size:12.5px;color:var(--text-muted);">Loading…</div></div>
+  </div>
+  <button class="btn btn-danger" data-action="logout">🚪 Sign Out</button>
+  `;
+}
+function editProfileModal(){
+  showModal("Edit Profile", `
+    <form data-form="edit-profile">
+      <div class="field"><label>Name</label><input name="name" value="${esc(state.user.name)}" required></div>
+      <div class="field"><label>Phone</label><input name="phone" value="${esc(state.user.phone||"")}"></div>
+      <div class="field"><label>Address</label><input name="address" value="${esc(state.user.address||"")}"></div>
+      <button class="btn btn-primary btn-block" type="submit">Save Changes</button>
+    </form>
+  `, "");
+}
+function editApiModal(){
+  showModal("API Server Address", `
+    <form data-form="edit-api">
+      <div class="field"><label>Base URL</label><input name="apiBase" value="${esc(CONFIG.apiBase)}" required placeholder="http://localhost:4000"></div>
+      <div class="field-hint">Point this at wherever the EcoStream backend (server.js) is running.</div>
+      <button class="btn btn-primary btn-block" type="submit">Save</button>
+    </form>
+  `, "");
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function showModal(title, body, footer){
+  const existing = document.getElementById("modal-root");
+  if(existing) existing.remove();
+  const wrap = document.createElement("div");
+  wrap.id = "modal-root";
+  wrap.className = "modal-overlay";
+  wrap.innerHTML = `<div class="modal">
+    <div class="modal-header"><b style="font-size:16px;">${title}</b><button class="icon-btn" data-action="close-modal" style="width:30px;height:30px;">✕</button></div>
+    <div class="modal-body">${body}</div>
+    ${footer? `<div class="modal-footer">${footer}</div>`:""}
+  </div>`;
+  wrap.addEventListener("click", e=>{ if(e.target===wrap) closeModal(); });
+  document.body.appendChild(wrap);
+}
+function closeModal(){ const m=document.getElementById("modal-root"); if(m) m.remove(); }
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const LOADERS = {
+  dashboard: loadDashboard, book: loadBook, projects: loadProjects,
+  invoices: loadInvoices, documents: loadDocuments, support: loadSupport,
+  chat: loadChat, notifications: loadNotifications, profile: loadProfile,
+};
+function render(){
+  if(state.chatPoll){ clearInterval(state.chatPoll); state.chatPoll=null; }
+  if(!state.token || !state.user){ renderAuth(); return; }
+  const loader = LOADERS[state.view] || loadDashboard;
+  loader();
+}
+
+/* ============================================================
+   EVENT DELEGATION
+   ============================================================ */
+document.addEventListener("click", async (e)=>{
+  const t = e.target.closest("[data-action]");
+  if(!t) return;
+  const action = t.dataset.action;
+
+  if(action==="auth-tab"){ state.authMode = t.dataset.mode; renderAuth(); return; }
+  if(action==="nav"){ state.view = t.dataset.view; document.getElementById("sidebar")?.classList.remove("open"); render(); return; }
+  if(action==="logout"){ logout(); return; }
+  if(action==="toggle-theme"){ toggleTheme(); return; }
+  if(action==="toggle-sidebar"){ document.getElementById("sidebar").classList.toggle("open"); return; }
+  if(action==="close-sidebar"){ document.getElementById("sidebar").classList.remove("open"); return; }
+  if(action==="close-modal"){ closeModal(); return; }
+  if(action==="reload"){ render(); return; }
+
+  if(action==="book-type"){
+    document.querySelectorAll(".chip-row .chip").forEach(c=>c.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("requestTypeInput").value = t.dataset.type;
+    return;
+  }
+  if(action==="open-project"){ openProjectDetail(t.dataset.id); return; }
+  if(action==="view-invoice"){ openInvoice(t.dataset.id); return; }
+  if(action==="print-invoice"){ window.print(); return; }
+  if(action==="open-ticket"){ openTicket(t.dataset.id); return; }
+  if(action==="new-ticket"){ newTicketForm(); return; }
+  if(action==="mark-read"){
+    try{ await api("/api/notifications/"+t.dataset.id+"/read", {method:"PATCH"}); loadNotifications(); }catch{}
+    return;
+  }
+  if(action==="edit-profile"){ editProfileModal(); return; }
+  if(action==="revoke-session"){
+    try{ await api("/api/auth/sessions/"+t.dataset.id, {method:"DELETE"}); toast("Device signed out","success"); loadSessionsInto("sessions-panel"); }catch{}
+    return;
+  }
+  if(action==="revoke-all-sessions"){
+    if(!confirm("Sign out of all devices? You'll need to log in again here too.")) return;
+    try{ await api("/api/auth/sessions", {method:"DELETE"}); toast("Signed out everywhere","success"); logout(); }catch{}
+    return;
+  }
+  if(action==="edit-api"){ editApiModal(); return; }
+  if(action==="pick-file"){ document.getElementById("file-input").click(); return; }
+  if(action==="download-doc"){
+    try{
+      const { document: doc } = await api("/api/documents/"+t.dataset.id);
+      const a = document.createElement("a");
+      a.href = "data:"+doc.mimeType+";base64,"+doc.base64Data;
+      a.download = doc.fileName;
+      a.click();
+    }catch{}
+    return;
+  }
+});
+
+document.addEventListener("change", (e)=>{
+  if(e.target.id === "file-input"){
+    const file = e.target.files[0];
+    if(!file) return;
+    if(file.size > 6*1024*1024){ toast("File too large (max ~6MB)", "error"); return; }
+    const reader = new FileReader();
+    reader.onload = async ()=>{
+      const base64 = reader.result.split(",")[1];
+      const category = document.getElementById("doc-category").value;
+      try{
+        await api("/api/documents", { method:"POST", body: JSON.stringify({ fileName:file.name, mimeType:file.type||"application/octet-stream", base64Data:base64, category }) });
+        toast("Document uploaded");
+        loadDocuments();
+      }catch{}
