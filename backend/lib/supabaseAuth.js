@@ -22,11 +22,19 @@ async function authRequest(path, method, body, accessToken) {
   return data;
 }
 
-async function signUp({ email, password, data }) {
-  return authRequest("signup", "POST", { email, password, data });
+function normalizePhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.startsWith("220")) return "+" + digits;
+  if (digits.length === 9) return "+220" + digits;
+  throw Object.assign(new Error("Enter a valid Gambian phone number"), { status: 422 });
 }
-async function signIn({ email, password }) {
-  return authRequest("token?grant_type=password", "POST", { email, password });
+async function signUp({ phone, password, data }) {
+  const normalizedPhone = normalizePhone(phone);
+  return authRequest("signup", "POST", { phone: normalizedPhone, password, data: { ...(data || {}), phone: normalizedPhone } });
+}
+async function signIn({ phone, password }) {
+  const normalizedPhone = normalizePhone(phone);
+  return authRequest("token?grant_type=password", "POST", { phone: normalizedPhone, password });
 }
 async function refresh(refreshToken) {
   return authRequest("token?grant_type=refresh_token", "POST", { refresh_token: refreshToken });
@@ -45,6 +53,9 @@ async function requestPasswordReset(email, redirectTo) {
   const body = { email };
   if (redirectTo) body.redirect_to = redirectTo;
   return authRequest("recover", "POST", body);
+}
+async function verifyPhone(phone, token, type = "sms") {
+  return authRequest("verify", "POST", { phone: normalizePhone(phone), token, type });
 }
 
 function adminConfig() {
@@ -70,8 +81,8 @@ async function adminRequest(path, method, body) {
   return data;
 }
 
-async function adminCreateUser({ email, password, emailConfirmed = true, data = {} }) {
-  return adminRequest("users", "POST", { email, password, email_confirm: emailConfirmed, user_metadata: data });
+async function adminCreateUser({ phone, password, phoneConfirmed = true, data = {} }) {
+  return adminRequest("users", "POST", { phone: normalizePhone(phone), password, phone_confirm: phoneConfirmed, user_metadata: { ...(data || {}), phone: normalizePhone(phone) } });
 }
 
 async function adminGetUser(userId) {
@@ -94,4 +105,4 @@ async function adminDeleteUser(userId) {
   return adminRequest(`users/${encodeURIComponent(userId)}`, "DELETE");
 }
 
-module.exports = { signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, adminCreateUser, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
+module.exports = { normalizePhone, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminGetUser, adminListUsers, adminUpdateUser, adminDeleteUser };
