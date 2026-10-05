@@ -127,3 +127,10 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - Kept the production implementation SMS-independent: no SMS, OTP, or Supabase Phone Auth flow was added.
 - Corrected profile updates so name and phone Auth metadata are merged once from the current metadata snapshot, preventing a simultaneous name + phone update from overwriting either field.
 \n
+
+## 54. Phone identity synchronization hardening — 2026-10-05
+- Corrected customer, managed-client, and managed-staff phone changes so the deterministic internal Supabase Auth email is updated together with the phone metadata.
+- Added duplicate-phone protection for self-service phone changes.
+- Made phone lookup resilient when unrelated Auth users have no phone metadata.
+- This preserves the phone + PIN login contract after a phone-number change without enabling SMS or Supabase Phone Auth.
+
