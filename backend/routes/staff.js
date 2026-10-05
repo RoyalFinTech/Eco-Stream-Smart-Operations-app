@@ -27,7 +27,7 @@ function register(router) {
     let authUser;
     try {
       const role = staffRole === "administrator" ? "admin" : "staff";
-      authUser = await supabaseAuth.adminCreateUser({ phone, password: String(pin), phoneConfirmed: true, data: { name, phone, role, staff_role: staffRole } });
+      authUser = await supabaseAuth.adminCreateUser({ email: supabaseAuth.internalAuthEmail(phone), password: String(pin), emailConfirmed: true, data: { name, phone, role, staff_role: staffRole } });
       const member = await getRequestDb(req).collection("profiles").updateById(authUser.id, { role, staffRole, name, phone, status: "active" });
       if (!member) throw Object.assign(new Error("Supabase Auth user was created but staff profile provisioning failed"), { status: 502 });
       await audit(req, "staff_created", { staffId: authUser.id, staffRole });
@@ -44,7 +44,7 @@ function register(router) {
     if (name) patch.name = name;
     if (phone) {
       patch.phone = phone;
-      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { phone: supabaseAuth.normalizePhone(phone), phone_confirm: true });
+      if (isSupabase()) await supabaseAuth.adminUpdateUser(req.params.id, { user_metadata: { phone: supabaseAuth.normalizePhone(phone) } });
     }
     if (staffRole) patch.staffRole = staffRole;
     if (isSupabase() && staffRole) patch.role = staffRole === "administrator" ? "admin" : "staff";
