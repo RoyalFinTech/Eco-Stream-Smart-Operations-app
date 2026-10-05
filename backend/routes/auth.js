@@ -16,44 +16,83 @@ function publicUser(u) {
   return pub;
 }
 
+function normalizePhoneInput(phone) { return supabaseAuth.normalizePhone(phone); }
+function validatePin(pin) {
+  if (!/^\d{6}$/.test(String(pin || ""))) throw new ValidationError("PIN must be exactly 6 digits");
+}
 function registerSupabase(router) {
   router.post("/api/auth/register", async (req, res) => {
-    const { name, email, phone, password } = req.body;
-    requireFields(req.body, ["name", "email", "phone", "password"]);
-    if (!isEmail(email)) throw new ValidationError("Invalid email address");
-    if (password.length < 8) throw new ValidationError("Password must be at least 8 characters");
+    const { name, phone, pin, address } = req.body;
+    requireFields(req.body, ["name", "phone", "pin"]);
+    if (String(name).trim().length < 2) throw new ValidationError("Enter your full name");
+    validatePin(pin);
+    const normalizedPhone = normalizePhoneInput(phone);
     try {
-      const result = await supabaseAuth.signUp({ email: email.toLowerCase(), password, data: { name, phone, role: "client" } });
-      sendJSON(res, 201, {
-        message: result.session ? "Account created successfully." : "Account created. Please verify your email before signing in.",
-        token: result.session?.access_token || null,
-        refreshToken: result.session?.refresh_token || null,
-        user: result.user ? { id: result.user.id, email: result.user.email, name, phone, role: "client", authProvider: "supabase" } : null,
+      const result = await supabaseAuth.signUp({
+        phone: normalizedPhone,
+        password: String(pin),
+        data: { name: String(name).trim(), phone: normalizedPhone, role: "client", address: address || "" }
       });
+      const user = result.user;
+      const profile = user ? await requireProfile(result.session?.access_token || "", user.id) : null;
+      if (result.session) {
+        sendJSON(res, 201, {
+          message: "Account created successfully.",
+          token: result.session.access_token,
+          refreshToken: result.session.refresh_token,
+          user: { ...profile, phone: normalizedPhone, role: "client", authProvider: "supabase" }
+        });
+      } else {
+        sendJSON(res, 202, {
+          message: "Account created. Complete the phone verification code sent to your number before signing in.",
+          verificationRequired: true,
+          phone: normalizedPhone,
+          user: user ? { id: user.id, phone: normalizedPhone, role: "client", name: String(name).trim() } : null
+        });
+      }
     } catch (err) {
-      if (err.status === 422 || /already registered|already exists/i.test(err.message)) return sendJSON(res, 409, { error: "An account with this email already exists" });
+      if (err.status === 422 || /already registered|already exists|user_already_exists/i.test(err.message)) {
+        return sendJSON(res, 409, { error: "An account with this phone number already exists" });
+      }
       throw err;
     }
   });
 
-  router.post("/api/auth/verify-email", async (req, res) => {
-    sendJSON(res, 200, { message: "Email verification is handled by Supabase Auth. Use the verification link sent to your email." });
+  router.post("/api/auth/verify-phone", async (req, res) => {
+    const { phone, token } = req.body;
+    requireFields(req.body, ["phone", "token"]);
+    if (!/^\d{6}$/.test(String(token))) throw new ValidationError("Verification code must be 6 digits");
+    try {
+      const session = await supabaseAuth.verifyPhone(phone, token, "sms");
+      const profile = session.user ? await requireProfile(session.access_token, session.user.id) : null;
+      sendJSON(res, 200, {
+        message: "Phone verified successfully.",
+        token: session.access_token,
+        refreshToken: session.refresh_token,
+        user: { ...profile, phone: session.user?.phone, authProvider: "supabase" }
+      });
+    } catch (err) {
+      if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "The verification code is invalid or expired." });
+      throw err;
+    }
   });
 
   router.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
-    requireFields(req.body, ["email", "password"]);
+    const { phone, pin } = req.body;
+    requireFields(req.body, ["phone", "pin"]);
+    validatePin(pin);
     try {
-      const session = await supabaseAuth.signIn({ email: String(email).toLowerCase(), password });
+      const session = await supabaseAuth.signIn({ phone, password: String(pin) });
       const profile = session.user ? await requireProfile(session.access_token, session.user.id) : null;
-      if (profile?.status === "suspended") return sendJSON(res, 403, { error: "This account has been suspended. Contact support." });
+      if (!profile) return sendJSON(res, 403, { error: "Your EcoStream profile is not available. Contact support." });
+      if (profile.status === "suspended") return sendJSON(res, 403, { error: "This account has been suspended. Contact support." });
       sendJSON(res, 200, {
         token: session.access_token,
         refreshToken: session.refresh_token,
-        user: { ...profile, email: session.user?.email, authProvider: "supabase" },
+        user: { ...profile, phone: session.user?.phone || profile.phone, authProvider: "supabase" }
       });
     } catch (err) {
-      if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "Invalid email or password" });
+      if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "Invalid phone number or PIN" });
       throw err;
     }
   });
@@ -71,42 +110,41 @@ function registerSupabase(router) {
 
   router.post("/api/auth/logout", authenticate, async (req, res) => {
     try { await supabaseAuth.signOut(req.user.accessToken); } catch (err) {
-      // A local client-side discard is still safe if the remote session is already invalid.
       if (![401, 403].includes(err.status)) throw err;
     }
     sendJSON(res, 200, { message: "Logged out" });
   });
 
-  router.post("/api/auth/forgot-password", async (req, res) => {
-    const { email } = req.body;
-    requireFields(req.body, ["email"]);
-    await supabaseAuth.requestPasswordReset(String(email).toLowerCase(), process.env.SUPABASE_AUTH_REDIRECT_URL);
-    sendJSON(res, 200, { message: "If that email exists, a reset link has been sent." });
+  router.post("/api/auth/forgot-pin", async (req, res) => {
+    sendJSON(res, 200, { message: "For security, EcoStream PIN resets are handled by authorized support staff. Please contact EcoStream." });
   });
 
   router.post("/api/auth/reset-password", authenticate, async (req, res) => {
     const { newPassword } = req.body;
     requireFields(req.body, ["newPassword"]);
-    if (newPassword.length < 8) throw new ValidationError("Password must be at least 8 characters");
-    await supabaseAuth.updateUser(req.user.accessToken, { password: newPassword });
-    sendJSON(res, 200, { message: "Password has been reset. You can now log in." });
+    validatePin(newPassword);
+    await supabaseAuth.updateUser(req.user.accessToken, { password: String(newPassword) });
+    sendJSON(res, 200, { message: "PIN has been updated successfully." });
   });
 
   router.get("/api/auth/profile", authenticate, async (req, res) => {
-    sendJSON(res, 200, { user: { ...req.user.profile, email: req.user.email } });
+    sendJSON(res, 200, { user: { ...req.user.profile, phone: req.user.authUser?.phone || req.user.profile?.phone } });
   });
 
   router.put("/api/auth/profile", authenticate, async (req, res) => {
     const patch = {};
     if (req.body.name) patch.name = req.body.name;
-    if (req.body.phone) patch.phone = req.body.phone;
+    if (req.body.phone) patch.phone = normalizePhoneInput(req.body.phone);
     if (req.body.address !== undefined) patch.address = req.body.address;
     const profile = await getRequestDb(req).collection("profiles").updateById(req.user.id, patch);
     if (!profile) return sendJSON(res, 404, { error: "User profile not found" });
-    if (req.body.name || req.body.phone) {
-      await supabaseAuth.updateUser(req.user.accessToken, { data: { ...(req.user.authUser.user_metadata || {}), ...(req.body.name ? { name: req.body.name } : {}), ...(req.body.phone ? { phone: req.body.phone } : {}) } });
+    if (req.body.name) {
+      await supabaseAuth.updateUser(req.user.accessToken, { data: { ...(req.user.authUser.user_metadata || {}), name: req.body.name } });
     }
-    sendJSON(res, 200, { user: { ...profile, email: req.user.email } });
+    if (req.body.phone) {
+      await supabaseAuth.updateUser(req.user.accessToken, { phone: patch.phone });
+    }
+    sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone } });
   });
 }
 
