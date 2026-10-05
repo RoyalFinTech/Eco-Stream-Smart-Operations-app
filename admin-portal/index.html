@@ -373,11 +373,11 @@ function renderAuth(){
       </div>
       <div class="auth-card">
         <form data-form="login">
-          <div class="field"><label>Gambian Mobile Number</label>
-            <div class="phone-control"><span class="phone-country">🇬🇲 +220</span><input name="phone" value="87" required inputmode="numeric" autocomplete="tel" maxlength="9" pattern="[0-9]{9}" placeholder="87 ••• ••• 7"></div>
+          <div class="field"><label>Administrator Email</label>
+            <input type="email" name="email" required autocomplete="username" placeholder="Administrator email">
           </div>
-          <div class="field"><label>6-Digit Staff PIN</label><input type="password" name="pin" required inputmode="numeric" autocomplete="current-password" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>
-          <button class="btn btn-primary btn-block" type="submit">🔐 Secure Staff Sign In</button>
+          <div class="field"><label>Administrator Password</label><input type="password" name="password" required autocomplete="current-password" placeholder="••••••••"></div>
+          <button class="btn btn-primary btn-block" type="submit">🛡️ Secure Administrator Sign In</button>
           <button class="btn btn-outline btn-block" style="margin-top:10px;" type="button" data-action="passkey-login">🔐 Use Phone Biometrics / Passkey</button>
         </form>
       </div>
@@ -1144,8 +1144,8 @@ document.addEventListener("submit", async (e)=>{
 
   try{
     if(kind==="login"){
-      const res = await api("/api/auth/login", {method:"POST", body:JSON.stringify(data)});
-      if(res.user.role==="client"){ toast("This portal is for staff & admins only. Use the Client Portal instead.", "error"); return; }
+      const res = await api("/api/auth/admin-login", {method:"POST", body:JSON.stringify(data)});
+      if(res.user.role!=="admin"){ toast("Administrator access only.", "error"); return; }
       setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Welcome back, "+res.user.name+"!", "success"); render();
     }
     else if(kind==="new-client"){ await api("/api/clients", {method:"POST", body:JSON.stringify(data)}); toast("Client created","success"); closeModal(); loadClients(); }
