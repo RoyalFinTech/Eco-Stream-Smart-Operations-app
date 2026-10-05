@@ -75,3 +75,13 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - Normalized Gambian phone numbers at the Supabase Auth boundary.
 - Important deployment prerequisite: Supabase Phone provider/SMS and Passkeys/WebAuthn must be enabled/configured in the Supabase Auth dashboard; those provider settings are not exposed through the connected engineering API.
 - Existing production user rows were not rewritten automatically because changing live authentication identifiers/credentials requires a controlled migration; no destructive user migration was performed.
+
+## 48. Authentication/biometric QA checkpoint — 2026-10-05
+- Audited the live main-branch client and admin authentication source after the protected administrator credential change.
+- Confirmed customer registration/login uses Gambian phone identity plus a six-digit PIN, with SMS phone verification handled by the Supabase Auth boundary.
+- Confirmed the customer verification screen calls /api/auth/verify-phone after registration when Supabase requires confirmation; the server does not fabricate or bypass the verification step.
+- Confirmed both portals use Supabase's current experimental passkey client opt-in and call signInWithPasskey/registerPasskey; the browser dynamically loads supabase-js 2.117.2, which satisfies the current documented passkey minimum of 2.105.0.
+- Confirmed passkey registration is only exposed after authentication and passkey sign-in obtains a Supabase Auth session before the application profile request, preserving the existing RLS/session boundary.
+- Confirmed the administrator login is isolated to the server-side ADMIN_LOGIN_EMAIL / ADMIN_LOGIN_PASSWORD environment contract and provisions/verifies an admin profile before returning a session; no administrator password is stored in the repository.
+- Current external prerequisite remains: Supabase Auth Phone/SMS and Passkeys/WebAuthn must be enabled and configured for the production project, including the stable WebAuthn relying-party ID/origin. The connected engineering interface does not expose those provider settings, so this is recorded as a deployment prerequisite rather than falsely certified.
+- Reference checked against current Supabase passkey documentation: passkey support is experimental, requires explicit client opt-in, requires an existing confirmed user for registration, and uses discoverable credentials for sign-in.
