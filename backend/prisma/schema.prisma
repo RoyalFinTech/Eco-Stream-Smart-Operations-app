@@ -1,0 +1,283 @@
+// prisma/schema.prisma
+//
+// ⚠️ STATUS: written and reviewed, but NOT run in this environment.
+// This sandbox has no internet access (so `prisma generate`/`npm install
+// @prisma/client` can't run) and no PostgreSQL server available (so
+// `prisma migrate dev` has nothing to connect to). Treat this schema as a
+// correct, ready-to-run starting point — verify it with `prisma validate`
+// and a real migration once you have registry + database access. See
+// documentation/POSTGRES_MIGRATION.md for the exact steps.
+//
+// Mirrors the JSON collections in lib/db.js field-for-field so the
+// repositories/ layer can implement the same interface (find/insert/update/
+// remove) against Postgres instead, without routes/*.js changing at all.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  client
+  staff
+  admin
+}
+
+enum ClientStatus {
+  active
+  suspended
+  pending
+}
+
+enum ProjectStatus {
+  pending
+  ongoing
+  completed
+}
+
+enum BookingStatus {
+  pending
+  approved
+  rejected
+}
+
+enum PaymentStatus {
+  paid
+  pending
+}
+
+enum TicketStatus {
+  open
+  in_progress @map("in-progress")
+  resolved
+}
+
+enum DocumentCategory {
+  report
+  water_test @map("water-test")
+  contract
+  other
+}
+
+enum ChatSender {
+  client
+  company
+}
+
+model User {
+  id                     String    @id @default(cuid())
+  role                   Role
+  staffRole              String?
+  name                   String
+  email                  String    @unique
+  phone                  String
+  address                String?
+  password               String    // scrypt "salt:hash", same format as the JSON store
+  status                 ClientStatus @default(active)
+  emailVerified          Boolean   @default(false)
+  emailVerificationToken String?   @unique
+  emailVerificationTokenExpires BigInt?
+  resetToken             String?   @unique
+  resetTokenExpires      BigInt?
+  failedLoginAttempts    Int       @default(0)
+  lockUntil              BigInt?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  projects      Project[]      @relation("ClientProjects")
+  assigned      Project[]      @relation("AssignedEngineer")
+  bookings      Booking[]
+  payments      Payment[]
+  notifications Notification[]
+  tickets       Ticket[]
+  documents     Document[]
+  chatMessages  ChatMessage[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+
+  @@index([role])
+  @@index([email])
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String   @unique
+  device           String
+  ip               String?
+  createdAt        DateTime @default(now())
+  lastUsedAt       DateTime @default(now())
+  expiresAt        DateTime
+  revoked          Boolean  @default(false)
+  revokedAt        DateTime?
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+}
+
+model Project {
+  id                 String        @id @default(cuid())
+  clientId           String
+  client             User          @relation("ClientProjects", fields: [clientId], references: [id])
+  location           String
+  status             ProjectStatus @default(pending)
+  depth              Int           @default(0)
+  totalDepth          Int          @default(60)
+  waterYield         Float         @default(0)
+  soilType           String?
+  startDate          DateTime      @default(now())
+  assignedEngineerId String?
+  assignedEngineer   User?         @relation("AssignedEngineer", fields: [assignedEngineerId], references: [id])
+  notes              String?
+  timeline           Json          @default("[]") // [{date, label}] — kept as JSON to match the existing API shape exactly
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  payments Payment[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  clientId         String
+  client           User          @relation(fields: [clientId], references: [id])
+  requestType      String        @default("drilling")
+  package          String        @default("standard")
+  drillingLocation String
+  areaType         String        @default("residential")
+  purpose          String        @default("drinking")
+  paymentPlan      String        @default("full")
+  status           BookingStatus @default(pending)
+  submittedAt      DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  clientId  String
+  client    User          @relation(fields: [clientId], references: [id])
+  projectId String?
+  project   Project?      @relation(fields: [projectId], references: [id])
+  amount    Decimal       @db.Decimal(12, 2) // exact currency arithmetic — never Float for money
+  method    String
+  status    PaymentStatus @default(paid)
+  date      DateTime      @default(now())
+  createdAt DateTime      @default(now())
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?  // null = system-wide broadcast
+  user      User?    @relation(fields: [userId], references: [id])
+  type      String   @default("system")
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Ticket {
+  id            String       @id @default(cuid())
+  ticketNumber  String       @unique
+  clientId      String?
+  client        User?        @relation(fields: [clientId], references: [id])
+  subject       String
+  description   String
+  category      String       @default("general")
+  priority      String       @default("medium")
+  status        TicketStatus @default(open)
+  location      String?
+  replies       Json         @default("[]") // [{id, author, message, date}]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model Document {
+  id               String           @id @default(cuid())
+  clientId         String?
+  client           User?            @relation(fields: [clientId], references: [id])
+  fileName         String
+  mimeType         String
+  storageKey       String
+  storageProvider  String           @default("local")
+  category         DocumentCategory @default(other)
+  uploadedBy       String
+  uploadedByRole   String
+  createdAt        DateTime         @default(now())
+
+  @@index([clientId])
+}
+
+model ChatMessage {
+  id         String     @id @default(cuid())
+  clientId   String
+  client     User       @relation(fields: [clientId], references: [id])
+  sender     ChatSender
+  senderName String
+  message    String
+  read       Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+
+  @@index([clientId])
+}
+
+model Equipment {
+  id              String    @id @default(cuid())
+  type            String
+  name            String
+  status          String    @default("active")
+  lastMaintenance DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  category  String
+  amount    Decimal  @db.Decimal(12, 2)
+  note      String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model Cms {
+  id              String @id @default("cms_1")
+  heroTitle       String
+  heroSubtitle    String
+  contactPhone    String
+  contactAddress  String
+  contactHours    String
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorName  String
+  actorRole  String?
+  action     String
+  details    Json     @default("{}")
+  ip         String?
+  date       DateTime @default(now())
+
+  @@index([actorId])
+  @@index([date])
+}
