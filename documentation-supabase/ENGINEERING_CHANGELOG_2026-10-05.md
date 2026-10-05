@@ -98,3 +98,11 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 - In-app client↔company chat is retained as the immediate communication channel. The client portal already exposes Chat with Company, while the admin portal exposes client conversation lists and reply threads.
 - Supabase Phone/SMS can be enabled later as an optional verification layer without changing the customer-facing phone + PIN account model.
 - Certified source changes: `backend/lib/supabaseAuth.js`, `backend/routes/auth.js`, `client-portal/index.html`.
+
+
+## 50. Chat read-receipt RLS hardening — 2026-10-05
+- Verified the production `chat_messages` SELECT/INSERT policies against the SMS-independent client/admin chat route.
+- Found that the client route intentionally marks unread company messages as read, but production had no UPDATE policy for `chat_messages`.
+- Added a narrowly scoped UPDATE policy: clients may update only company messages belonging to their own `auth.uid()` thread; staff/admin may update chat rows as operationally required.
+- No change to message visibility: clients remain restricted to their own thread and staff/admin retain cross-client access.
+- Migration: `allow_chat_read_receipts`.
