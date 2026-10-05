@@ -89,4 +89,9 @@ function createSupabaseRepository(table, accessToken) {
   };
 }
 
-module.exports = { createSupabaseRepository };
+function createSupabasePublicRepository(table) {
+  const { key } = config();
+  return createSupabaseRepository(table, key);
+}
+
+module.exports = { createSupabaseRepository, createSupabasePublicRepository };
