@@ -85,9 +85,9 @@ async function adminRequest(path, method, body) {
 
 function internalAuthEmail(phone) {
   const normalized = normalizePhone(phone);
-  return `phone_${normalized.replace(/\\D/g, "")}@accounts.ecostream.gm`;
+  const digits = normalized.split("").filter((ch) => ch >= "0" && ch <= "9").join("");
+  return `phone_${digits}@accounts.ecostream.gm`;
 }
-
 async function adminFindUserByEmail(email) {
   const users = await adminListUsers();
   const target = String(email || "").trim().toLowerCase();
