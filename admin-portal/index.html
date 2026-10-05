@@ -989,7 +989,7 @@ function loadSettings(){
   renderShell(`
   <div class="card card-pad" style="max-width:420px;margin-bottom:16px;">
     <div class="row" style="margin-bottom:14px;"><div class="avatar" style="width:52px;height:52px;">${initials(state.user.name)}</div><div><b>${esc(state.user.name)}</b></div></div>
-    <button class="btn btn-outline btn-sm" data-action="edit-profile">Edit Profile</button>
+    <button class="btn btn-outline btn-sm" data-action="edit-profile">Edit Profile</button><button class="btn btn-primary btn-sm" style="margin-left:8px;" data-action="register-passkey">🔐 Enable Biometrics</button>
   </div>
   <div class="card" style="max-width:420px;margin-bottom:16px;">
     <div class="row-between" style="padding:14px 18px;border-bottom:1px solid var(--border);"><b style="font-size:13px;">Dark Mode</b><button class="btn btn-sm ${document.documentElement.getAttribute('data-theme')==='dark'?'btn-primary':'btn-outline'}" data-action="toggle-theme">${document.documentElement.getAttribute('data-theme')==='dark'?'🌙 On':'☀️ Off'}</button></div>
