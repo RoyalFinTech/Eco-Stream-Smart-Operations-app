@@ -63,3 +63,15 @@ These changes belong to the current v1.3 engineering line. Do not mix them with 
 
 
 47. Phone/PIN/passkey authentication migration: production-facing client and staff/admin authentication now uses Gambian phone identities with six-digit PINs; email was removed from user-facing flows. Added restricted staff/admin footer access, Royal Fintech footer branding, passkey enrollment/sign-in integration, phone identity synchronization, and a documented Supabase Auth configuration gate. Existing Auth users were not directly mutated through SQL; safe migration remains an authorized Auth Admin operation.
+
+
+## 47. Phone + PIN authentication and protected staff entry — 2026-10-05
+- Reworked Supabase Auth application flows toward Gambian phone-number identity with a 6-digit PIN as the user credential.
+- Client registration/login UI now uses name + Gambian phone (+220) + 6-digit PIN; email fields were removed from the client portal.
+- Admin/staff portal now uses Gambian phone (+220) + 6-digit staff PIN, with restricted-access/shield messaging.
+- Client landing/auth footer includes the protected staff/admin portal route and retains the business phone number; footer branding uses “Powered by Royal Fintech”.
+- Added Supabase phone signup/login/verification adapter support and aligned staff/client provisioning to Supabase Auth phone identities.
+- Added safe public passkey configuration endpoint and retained native WebAuthn/passkey UI as the returning-user biometric/device-auth option.
+- Normalized Gambian phone numbers at the Supabase Auth boundary.
+- Important deployment prerequisite: Supabase Phone provider/SMS and Passkeys/WebAuthn must be enabled/configured in the Supabase Auth dashboard; those provider settings are not exposed through the connected engineering API.
+- Existing production user rows were not rewritten automatically because changing live authentication identifiers/credentials requires a controlled migration; no destructive user migration was performed.
