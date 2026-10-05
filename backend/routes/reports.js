@@ -1,4 +1,4 @@
-const db = require("../lib/db");
+const { getRequestDb } = require("../lib/requestDb");
 const { sendJSON, authenticate, requireRole } = require("../lib/router");
 
 function rangeStart(range, ref) {
@@ -11,30 +11,23 @@ function rangeStart(range, ref) {
 }
 
 function register(router) {
-  // ---------- GET /api/reports?range=daily|weekly|monthly|annual&date=YYYY-MM-DD ----------
   router.get("/api/reports", authenticate, requireRole("admin", "staff"), async (req, res) => {
     const range = req.query.range || "monthly";
     const refDate = req.query.date ? new Date(req.query.date) : new Date();
+    if (Number.isNaN(refDate.getTime())) throw Object.assign(new Error("date must be a valid date"), { status: 400 });
     const start = rangeStart(range, refDate);
-
-    const payments = await db.collection("payments").find((p) => new Date(p.date) >= start);
-    const expenses = await db.collection("expenses").find((e) => new Date(e.date) >= start);
-    const projects = await db.collection("projects").find((p) => new Date(p.startDate) >= start);
-    const bookings = await db.collection("bookings").find((b) => new Date(b.submittedAt) >= start);
-
-    const revenue = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
-    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-
-    sendJSON(res, 200, {
-      range,
-      periodStart: start.toISOString(),
-      revenue,
-      expenses: totalExpenses,
-      profit: revenue - totalExpenses,
-      newProjects: projects.length,
-      newBookings: bookings.length,
-      paymentsCount: payments.length,
-    });
+    const database = getRequestDb(req);
+    const [payments, expenses, projects, bookings] = await Promise.all([
+      database.collection("payments").all(), database.collection("expenses").all(), database.collection("projects").all(), database.collection("bookings").all(),
+    ]);
+    const inRange = (value) => value && new Date(value).getTime() >= start.getTime();
+    const periodPayments = payments.filter((p) => inRange(p.date));
+    const periodExpenses = expenses.filter((e) => inRange(e.date));
+    const periodProjects = projects.filter((p) => inRange(p.startDate));
+    const periodBookings = bookings.filter((b) => inRange(b.submittedAt));
+    const revenue = periodPayments.filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.amount || 0), 0);
+    const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    sendJSON(res, 200, { range, periodStart: start.toISOString(), revenue, expenses: totalExpenses, profit: revenue - totalExpenses, newProjects: periodProjects.length, newBookings: periodBookings.length, paymentsCount: periodPayments.length });
   });
 }
 
