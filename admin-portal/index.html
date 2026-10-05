@@ -381,7 +381,7 @@ function renderAuth(){
           <button class="btn btn-outline btn-block" style="margin-top:10px;" type="button" data-action="passkey-login">🔐 Use Phone Biometrics / Passkey</button>
         </form>
       </div>
-      <div class="auth-foot">Restricted to EcoStream staff &amp; administrators<br><span>Powered by Royal Fintech</span></div>
+      <div class="auth-foot">🛡️ Restricted Access · Authorized EcoStream Staff &amp; Administrators Only<br><span>Powered by Royal Fintech</span></div>
     </div>
   </div>`;
 }
@@ -1138,6 +1138,7 @@ document.addEventListener("submit", async (e)=>{
   e.preventDefault();
   const kind = form.dataset.form;
   const data = Object.fromEntries(new FormData(form).entries());
+  if (data.phone) data.phone = String(data.phone).replace(/\D/g, "");
   const submitBtn = form.querySelector("button[type=submit]");
   if(submitBtn){ submitBtn.disabled=true; submitBtn.dataset.origText=submitBtn.textContent; submitBtn.textContent="Please wait…"; }
 
