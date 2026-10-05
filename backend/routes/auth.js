@@ -70,6 +70,29 @@ function registerSupabase(router) {
     }
   });
 
+  // Customer accounts use Supabase Auth for identity, but deliberately do NOT
+  // depend on Supabase Phone/SMS. The phone number is the app-facing login
+  // identifier; Supabase stores an internal confirmed email identity so the
+  // account works while SMS is disabled. SMS can be enabled later without
+  // changing the customer-facing account model.
+  function internalAuthEmail(phone) {
+    return `phone_${normalizePhoneInput(phone).replace(/\D/g, "")}@accounts.ecostream.gm`;
+  }
+
+  async function provisionClientProfile(authUser, { name, phone, address }) {
+    const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+    if (!profileUrl || !key) throw Object.assign(new Error("Supabase service role configuration is unavailable"), { status: 503 });
+    const response = await fetch(`${profileUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify({ id: authUser.id, role: "client", status: "active", name: String(name).trim(), phone, address: address || "" })
+    });
+    if (!response.ok) throw Object.assign(new Error("Could not provision the customer profile"), { status: 503 });
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows[0] : rows;
+  }
+
   router.post("/api/auth/register", async (req, res) => {
     const { name, phone, pin, address } = req.body;
     requireFields(req.body, ["name", "phone", "pin"]);
@@ -77,28 +100,24 @@ function registerSupabase(router) {
     validatePin(pin);
     const normalizedPhone = normalizePhoneInput(phone);
     try {
-      const result = await supabaseAuth.signUp({
-        phone: normalizedPhone,
+      if (await supabaseAuth.adminFindUserByPhone(normalizedPhone)) {
+        return sendJSON(res, 409, { error: "An account with this phone number already exists" });
+      }
+      const email = internalAuthEmail(normalizedPhone);
+      const created = await supabaseAuth.adminCreateUser({
+        email,
         password: String(pin),
+        emailConfirmed: true,
         data: { name: String(name).trim(), phone: normalizedPhone, role: "client", address: address || "" }
       });
-      const user = result.user;
-      const profile = user && result.session ? await requireProfile(result.session.access_token, user.id) : null;
-      if (result.session) {
-        sendJSON(res, 201, {
-          message: "Account created successfully.",
-          token: result.session.access_token,
-          refreshToken: result.session.refresh_token,
-          user: { ...profile, phone: normalizedPhone, role: "client", authProvider: "supabase" }
-        });
-      } else {
-        sendJSON(res, 202, {
-          message: "Account created. Complete the phone verification code sent to your number before signing in.",
-          verificationRequired: true,
-          phone: normalizedPhone,
-          user: user ? { id: user.id, phone: normalizedPhone, role: "client", name: String(name).trim() } : null
-        });
-      }
+      const profile = await provisionClientProfile(created.user, { name, phone: normalizedPhone, address });
+      const session = await supabaseAuth.signIn({ email, password: String(pin) });
+      sendJSON(res, 201, {
+        message: "Account created successfully. No SMS verification is required.",
+        token: session.access_token,
+        refreshToken: session.refresh_token,
+        user: { ...profile, phone: normalizedPhone, role: "client", authProvider: "supabase" }
+      });
     } catch (err) {
       if (err.status === 422 || /already registered|already exists|user_already_exists/i.test(err.message)) {
         return sendJSON(res, 409, { error: "An account with this phone number already exists" });
@@ -107,23 +126,10 @@ function registerSupabase(router) {
     }
   });
 
+  // Kept as a compatibility endpoint only. It never sends SMS or calls the
+  // Supabase phone verification API while SMS is disabled.
   router.post("/api/auth/verify-phone", async (req, res) => {
-    const { phone, token } = req.body;
-    requireFields(req.body, ["phone", "token"]);
-    if (!/^\d{6}$/.test(String(token))) throw new ValidationError("Verification code must be 6 digits");
-    try {
-      const session = await supabaseAuth.verifyPhone(phone, token, "sms");
-      const profile = session.user ? await requireProfile(session.access_token, session.user.id) : null;
-      sendJSON(res, 200, {
-        message: "Phone verified successfully.",
-        token: session.access_token,
-        refreshToken: session.refresh_token,
-        user: { ...profile, phone: session.user?.phone, authProvider: "supabase" }
-      });
-    } catch (err) {
-      if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "The verification code is invalid or expired." });
-      throw err;
-    }
+    sendJSON(res, 410, { error: "Phone/SMS verification is disabled for EcoStream right now. No verification code is required." });
   });
 
   router.post("/api/auth/login", async (req, res) => {
@@ -131,7 +137,10 @@ function registerSupabase(router) {
     requireFields(req.body, ["phone", "pin"]);
     validatePin(pin);
     try {
-      const session = await supabaseAuth.signIn({ phone, password: String(pin) });
+      const normalizedPhone = normalizePhoneInput(phone);
+      const authUser = await supabaseAuth.adminFindUserByPhone(normalizedPhone);
+      if (!authUser?.email) return sendJSON(res, 401, { error: "Invalid phone number or PIN" });
+      const session = await supabaseAuth.signIn({ email: authUser.email, password: String(pin) });
       const profile = session.user ? await requireProfile(session.access_token, session.user.id) : null;
       if (!profile) return sendJSON(res, 403, { error: "Your EcoStream profile is not available. Contact support." });
       if (profile.status === "suspended") return sendJSON(res, 403, { error: "This account has been suspended. Contact support." });
