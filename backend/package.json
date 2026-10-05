@@ -1,0 +1,28 @@
+{
+  "name": "ecostream-api",
+  "version": "1.3.0",
+  "private": true,
+  "description": "EcoStream borehole drilling management API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "smoke": "../scripts/smoke-test.sh",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.js",
+    "postinstall": "prisma generate"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "prisma": "^6.16.0"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "node prisma/seed.js"
+  }
+}
