@@ -34,7 +34,7 @@ function registerSupabase(router) {
         data: { name: String(name).trim(), phone: normalizedPhone, role: "client", address: address || "" }
       });
       const user = result.user;
-      const profile = user ? await requireProfile(result.session?.access_token || "", user.id) : null;
+      const profile = user && result.session ? await requireProfile(result.session.access_token, user.id) : null;
       if (result.session) {
         sendJSON(res, 201, {
           message: "Account created successfully.",
