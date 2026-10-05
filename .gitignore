@@ -1,19 +1,36 @@
+# Dependencies
 node_modules/
+
+# Environment / secrets
 .env
 .env.local
+
+# Build output
 dist/
 build/
 coverage/
-logs/
+
+# Logs
+logs/*
 *.log
+!backend/logs/.gitkeep
+
+# OS/editor cruft
 .DS_Store
 .vscode/
-.sqlite
-.sqlite-wal
-.sqlite-shm
-backend/database/.json
+
+# SQLite (relevant once/if the Postgres migration path isn't used and
+# sqlite is trialled instead — this project's default JSON datastore is
+# already covered below)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# This project's runtime data — generated at first run by lib/seed.js,
+# never hand-authored, must not be committed (see backend/database/.gitkeep
+# and backend/uploads/.gitkeep, which ARE meant to be committed so the
+# empty folders exist on a fresh clone).
+backend/database/*.json
 !backend/database/.gitkeep
-backend/uploads/
+backend/uploads/*
 !backend/uploads/.gitkeep
-backend/logs/
-!backend/logs/.gitkeep
