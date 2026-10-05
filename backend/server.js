@@ -80,7 +80,8 @@ function contentType(filePath) {
 
 function servePortal(req, res) {
   const parsed = new URL(req.url, `http://${req.headers.host || "localhost"}`);
-  const prefix = Object.keys(portalRoots).find((key) => parsed.pathname === key || parsed.pathname.startsWith(key + "/"));
+  const rootClientRequest = parsed.pathname === "/" || parsed.pathname === "";
+  const prefix = rootClientRequest ? "/portal" : Object.keys(portalRoots).find((key) => parsed.pathname === key || parsed.pathname.startsWith(key + "/"));
   if (!prefix) return false;
 
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -90,7 +91,7 @@ function servePortal(req, res) {
   }
 
   const root = portalRoots[prefix];
-  let filePath = safePortalPath(root, parsed.pathname.slice(prefix.length));
+  let filePath = safePortalPath(root, rootClientRequest ? "/index.html" : parsed.pathname.slice(prefix.length));
   if (!filePath) {
     res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("Bad request");
