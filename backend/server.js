@@ -1,5 +1,6 @@
-// server.js — EcoStream API. Zero external dependencies: run with `node server.js`.
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 const { Router, sendJSON } = require("./lib/router");
 const db = require("./lib/db");
 const { seed } = require("./lib/seed");
@@ -10,19 +11,19 @@ const { assertAuthConfig } = require("./lib/auth");
 assertAuthConfig();
 function assertProviderConfig() {
   const provider = String(process.env.AUTH_PROVIDER || "json").toLowerCase();
-  if (!['json', 'supabase'].includes(provider)) throw new Error(`Unsupported AUTH_PROVIDER: ${provider}`);
-  if (provider === 'supabase' && (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY)) {
-    throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY are required when AUTH_PROVIDER=supabase');
+  if (!["json", "supabase"].includes(provider)) throw new Error(`Unsupported AUTH_PROVIDER: ${provider}`);
+  if (provider === "supabase" && (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY)) {
+    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required when AUTH_PROVIDER=supabase");
+  }
+  if (String(process.env.STORAGE_PROVIDER || "local").toLowerCase() === "supabase" &&
+      (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.SUPABASE_BUCKET)) {
+    throw new Error("SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_BUCKET are required when STORAGE_PROVIDER=supabase");
   }
 }
 assertProviderConfig();
 const { rateLimit } = require("./lib/rateLimit");
 
-
-
 const router = new Router();
-
-// ---------- global middleware ----------
 router.use(securityHeaders);
 router.use(requestLogger);
 router.use(rateLimit({ windowMs: 60_000, max: Number(process.env.RATE_LIMIT_MAX || 120) }));
@@ -48,13 +49,81 @@ router.get("/api/health", (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
+const backendRoot = path.resolve(__dirname, "..");
+const portalRoots = {
+  "/portal": path.join(backendRoot, "client-portal"),
+  "/admin": path.join(backendRoot, "admin-portal"),
+};
+
+function safePortalPath(root, pathname) {
+  const relative = decodeURIComponent(pathname).replace(/^\/+/, "");
+  const candidate = path.resolve(root, relative || "index.html");
+  return candidate === root || candidate.startsWith(root + path.sep) ? candidate : null;
+}
+
+function contentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  return ({
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+    ".webp": "image/webp",
+    ".txt": "text/plain; charset=utf-8",
+  })[ext] || "application/octet-stream";
+}
+
+function servePortal(req, res) {
+  const parsed = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  const prefix = Object.keys(portalRoots).find((key) => parsed.pathname === key || parsed.pathname.startsWith(key + "/"));
+  if (!prefix) return false;
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { Allow: "GET, HEAD" });
+    res.end();
+    return true;
+  }
+
+  const root = portalRoots[prefix];
+  let filePath = safePortalPath(root, parsed.pathname.slice(prefix.length));
+  if (!filePath) {
+    res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Bad request");
+    return true;
+  }
+
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    filePath = path.join(root, "index.html");
+  }
+
+  try {
+    const body = fs.readFileSync(filePath);
+    res.writeHead(200, {
+      "Content-Type": contentType(filePath),
+      "Cache-Control": path.basename(filePath) === "index.html" ? "no-cache" : "public, max-age=86400",
+    });
+    if (req.method === "HEAD") res.end();
+    else res.end(body);
+  } catch (err) {
+    logger.error("Portal asset error", { message: err.message, filePath });
+    res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Portal asset unavailable");
+  }
+  return true;
+}
 
 const server = http.createServer((req, res) => {
+  if (servePortal(req, res)) return;
   router.handle(req, res).catch((err) => {
     logger.error("Unhandled request error", { message: err.message, stack: err.stack });
     if (!res.headersSent) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Internal server error" }));
+      res.writeHead(err.status || 500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.status ? err.message : "Internal server error" }));
     }
   });
 });
@@ -69,11 +138,11 @@ async function bootstrap() {
     await seed(db);
   }
   server.listen(PORT, () => {
-    logger.info(`EcoStream API listening on http://localhost:${PORT} (db=${db.driver})`);
-    console.log(`EcoStream API listening on http://localhost:${PORT}`);
-    console.log(`Database driver: ${db.driver}`);
-    console.log(`Health check: http://localhost:${PORT}/api/health`);
-    console.log(`API docs: open documentation/api-docs.html in a browser (see openapi.yaml)`);
+    logger.info(`EcoStream API listening on port ${PORT} (db=${db.driver})`);
+    console.log(`EcoStream service listening on port ${PORT}`);
+    console.log("Client portal: /portal/");
+    console.log("Admin portal: /admin/");
+    console.log("Health check: /api/health");
   });
 }
 
@@ -82,10 +151,6 @@ bootstrap().catch((err) => {
   process.exit(1);
 });
 
-// ---------- graceful shutdown ----------
-// Stop accepting new connections, let in-flight requests finish, then exit.
-// Important for zero-downtime deploys/restarts (Render, Railway, Docker all
-// send SIGTERM before killing a container).
 let shuttingDown = false;
 function shutdown(signal) {
   if (shuttingDown) return;
@@ -100,7 +165,6 @@ function shutdown(signal) {
     db.disconnect().catch((disconnectErr) => logger.error("Database disconnect failed", { message: disconnectErr.message }));
     process.exit(0);
   });
-  // Safety net: if something is still open after 10s, force-exit rather than hang forever.
   setTimeout(() => {
     logger.warn("Forcing shutdown after 10s timeout");
     process.exit(1);
