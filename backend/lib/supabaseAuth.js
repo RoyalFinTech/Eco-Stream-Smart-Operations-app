@@ -83,7 +83,12 @@ async function adminRequest(path, method, body) {
   return data;
 }
 
-function internalAuthEmail(phone) {\n  const normalized = normalizePhone(phone);\n  return `phone_${normalized.replace(/\\D/g, "")}@accounts.ecostream.gm`;\n}\n\nasync function adminFindUserByEmail(email) {
+function internalAuthEmail(phone) {
+  const normalized = normalizePhone(phone);
+  return `phone_${normalized.replace(/\\D/g, "")}@accounts.ecostream.gm`;
+}
+
+async function adminFindUserByEmail(email) {
   const users = await adminListUsers();
   const target = String(email || "").trim().toLowerCase();
   return users.find((u) => String(u.email || "").toLowerCase() === target) || null;
