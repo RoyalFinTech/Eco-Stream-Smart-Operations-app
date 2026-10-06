@@ -62,8 +62,8 @@ async function verifyPhone(phone, token, type = "sms") {
 
 function adminConfig() {
   const url = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-  if (!url || !key) throw Object.assign(new Error("SUPABASE_SERVICE_ROLE_KEY is required for privileged Supabase Auth administration"), { status: 503 });
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!url || !key) throw Object.assign(new Error("A Supabase server secret key is required for privileged Auth administration"), { status: 503 });
   return { url, key };
 }
 
