@@ -78,7 +78,15 @@ function registerSupabase(router) {
       if (!profile || profile.role !== "admin") return sendJSON(res, 403, { error: "Administrator profile is not authorized." });
       sendJSON(res, 200, { token: session.access_token, refreshToken: session.refresh_token, user: { ...profile, email: configuredEmail, role: "admin", authProvider: "supabase" } });
     } catch (err) {
+      const detailCode = err?.details?.code || err?.details?.error_code || "";
+      const detailMessage = err?.details?.msg || err?.details?.message || err?.message || "";
+      require("../lib/logger").logger.error("Administrator authentication failed", {
+        status: err?.status || 500,
+        code: detailCode,
+        message: detailMessage,
+      });
       if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "Administrator authentication failed" });
+      if (err.status === 503) return sendJSON(res, 503, { error: "Administrator authentication service is not configured correctly. Please contact the system engineer." });
       throw err;
     }
   });
