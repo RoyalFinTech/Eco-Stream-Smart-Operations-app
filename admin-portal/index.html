@@ -282,7 +282,7 @@ async function api(path, opts={}){
   let data = {};
   try{ data = await res.json(); }catch{}
 
-  if(res.status === 401 && !opts._retried && state.refreshToken && path !== "/api/auth/refresh"){
+  if(res.status === 401 && !opts._retried && state.refreshToken && !["/api/auth/refresh","/api/auth/login","/api/auth/admin-login"].includes(path)){
     const refreshed = await trySilentRefresh();
     if(refreshed) return api(path, { ...opts, _retried: true });
   }
