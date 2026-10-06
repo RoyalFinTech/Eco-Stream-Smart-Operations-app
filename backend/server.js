@@ -12,8 +12,8 @@ assertAuthConfig();
 function assertProviderConfig() {
   const provider = String(process.env.AUTH_PROVIDER || "json").toLowerCase();
   if (!["json", "supabase"].includes(provider)) throw new Error(`Unsupported AUTH_PROVIDER: ${provider}`);
-  if (provider === "supabase" && (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY)) {
-    throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required when AUTH_PROVIDER=supabase");
+  if (provider === "supabase" && (!process.env.SUPABASE_URL || !(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY))) {
+    throw new Error("SUPABASE_URL and a Supabase publishable/anon key are required when AUTH_PROVIDER=supabase");
   }
   if (String(process.env.STORAGE_PROVIDER || "local").toLowerCase() === "supabase" &&
       (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.SUPABASE_BUCKET)) {
@@ -47,7 +47,7 @@ require("./routes/sessions").register(router);
 router.get("/api/config/public", (req, res) => {
   sendJSON(res, 200, {
     supabaseUrl: process.env.SUPABASE_URL || "",
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+    supabaseAnonKey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "",
     passkeyRpId: "ecostream-m2sy.onrender.com",
     passkeyOrigin: "https://ecostream-m2sy.onrender.com"
   });
