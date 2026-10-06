@@ -41,11 +41,11 @@ async function ensureConfiguredAdmin({ repairPassword = true } = {}) {
   // the configured admin identity/role server-side.
   const { url } = (() => {
     const u = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-    const k = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+    const k = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     if (!u || !k) throw Object.assign(new Error("Supabase service role configuration is unavailable"), { status: 503 });
     return { url: u, key: k };
   })();
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   const response = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}`, {
     method: "POST",
     headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
@@ -65,14 +65,20 @@ function registerSupabase(router) {
       return sendJSON(res, 401, { error: "Invalid administrator credentials" });
     }
     try {
-      let authUser = await ensureConfiguredAdmin({ repairPassword: false });
       let session;
+      let authUser;
       try {
+        // Primary path: authenticate directly. A privileged Admin API outage must
+        // never block a correctly configured administrator from signing in.
         session = await supabaseAuth.signIn({ email: configuredEmail, password: configuredPassword });
+        authUser = await supabaseAuth.getUser(session.access_token);
       } catch (firstErr) {
-        // Repair only after a failed sign-in, then retry once.
+        // Recovery path: if the configured admin identity is missing or its password
+        // is stale, repair/provision it server-side and retry once.
+        if (![400, 401].includes(firstErr?.status)) throw firstErr;
         authUser = await ensureConfiguredAdmin({ repairPassword: true });
         session = await supabaseAuth.signIn({ email: configuredEmail, password: configuredPassword });
+        authUser = await supabaseAuth.getUser(session.access_token);
       }
       const profile = await requireProfile(session.access_token, authUser.id);
       if (!profile || profile.role !== "admin") return sendJSON(res, 403, { error: "Administrator profile is not authorized." });
