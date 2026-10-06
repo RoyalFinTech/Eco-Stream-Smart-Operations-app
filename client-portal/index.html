@@ -245,7 +245,9 @@ const CONFIG = (() => {
   const browserOrigin = (location.protocol === "http:" || location.protocol === "https:") ? location.origin : "";
   const isLocalBrowser = location.hostname === "localhost" || location.hostname === "127.0.0.1";
   const storedIsLocal = !!stored && (stored.startsWith("http://localhost:") || stored.startsWith("https://localhost:") || stored.startsWith("http://127.0.0.1:") || stored.startsWith("https://127.0.0.1:"));
-  return { apiBase: stored && (!browserOrigin || isLocalBrowser || !storedIsLocal) ? stored : (browserOrigin || "http://localhost:4000") };
+  // Production is same-origin. Never trust a stale persisted API URL there;
+  // only local development may override the API base.
+  return { apiBase: isLocalBrowser && stored ? stored : (browserOrigin || "http://localhost:4000") };
 })();
 const state = {
   token: localStorage.getItem("eco_token") || null,
