@@ -356,19 +356,23 @@ function setAuth(token, refreshToken, user){
   if(refreshToken) localStorage.setItem("eco_refresh_token", refreshToken);
   localStorage.setItem("eco_user", JSON.stringify(user));
 }
-function logout(redirect=true){
+async function logout(redirect=true){
+  const accessToken = state.token;
   const refreshToken = state.refreshToken;
+  // Revoke the current Supabase session before clearing local credentials.
+  if(accessToken){
+    try{
+      await fetch(CONFIG.apiBase + "/api/auth/logout", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+accessToken},
+        body:JSON.stringify({refreshToken})
+      });
+    }catch{}
+  }
   state.token = null; state.refreshToken = null; state.user = null;
   localStorage.removeItem("eco_token"); localStorage.removeItem("eco_refresh_token"); localStorage.removeItem("eco_user");
   if(state.chatPoll) clearInterval(state.chatPoll);
   state.authMode = "login";
-  if(refreshToken){
-    // Best-effort — revoke the session server-side so signing out actually
-    // invalidates the refresh token instead of just forgetting it locally.
-    fetch(CONFIG.apiBase + "/api/auth/logout", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({refreshToken})
-    }).catch(()=>{});
-  }
   if(redirect){ state.view="dashboard"; render(); }
 }
 
