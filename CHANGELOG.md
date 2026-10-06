@@ -5,6 +5,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Every en
 ## [Unreleased] — Production hardening audit
 
 ### Security
+- Hardened client Profile and admin hamburger/sidebar sign-out so the current Supabase access token is sent to `/api/auth/logout` before local credentials are cleared; this makes UI sign-out perform server-side session invalidation rather than only deleting browser storage.
 - Removed the hardcoded JWT signing-secret fallback (`lib/auth.js`). The app now refuses to start in production without a real `JWT_SECRET`, and generates a random per-process secret (with a clear warning) for local development instead of using a known string that was visible in this repository.
 - Fixed the same class of issue in `docker-compose.yml`, which had its own hardcoded `JWT_SECRET` default (`change-me-in-production`) — removed.
 - Added `NODE_ENV=production` to `backend/render.yaml` so the JWT fail-fast protection above is active by default on Render deployments, rather than depending on the operator setting it themselves.
