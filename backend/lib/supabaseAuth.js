@@ -8,7 +8,7 @@ function config() {
 async function authRequest(path, method, body, accessToken) {
   const { url, key } = config();
   const headers = { apikey: key, Accept: "application/json", "Content-Type": "application/json" };
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  headers.Authorization = `Bearer ${accessToken || key}`;
   const response = await fetch(`${url}/auth/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await response.text();
   let data = null;
