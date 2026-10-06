@@ -427,7 +427,7 @@ function renderAuth(){
   <div class="auth-screen">
     <div class="auth-box">
       <div class="auth-logo">
-        <div class="mark" style="background:#fff;padding:4px;"><img src="assets/ecostream-logo.svg" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div>
+        <div class="mark" style="background:#fff;padding:4px;"><img src="/portal/assets/ecostream-logo.svg" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div>
         <h1>EcoStream</h1>
         <p>Smart Borehole Operations</p>
       </div>
@@ -527,7 +527,7 @@ function renderShell(innerHtml, title){
   <div class="app-shell">
     <div class="sidebar-scrim" data-action="close-sidebar"></div>
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><div class="mark" style="background:#fff;padding:4px;"><img src="assets/ecostream-logo.svg" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div><div><b>EcoStream</b><span>Client Portal</span></div></div>
+      <div class="brand"><div class="mark" style="background:#fff;padding:4px;"><img src="/portal/assets/ecostream-logo.svg" alt="EcoStream" style="width:100%;height:100%;object-fit:contain;"></div><div><b>EcoStream</b><span>Client Portal</span></div></div>
       <nav class="nav-list">
         ${NAV.map(([id,ic,label])=>`<button class="nav-item ${state.view===id?'active':''}" data-action="nav" data-view="${id}"><span class="ic">${ic}</span>${label}</button>`).join("")}
       </nav>
