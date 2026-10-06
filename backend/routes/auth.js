@@ -28,33 +28,59 @@ async function ensureConfiguredAdmin({ repairPassword = true } = {}) {
   const email = String(process.env.ADMIN_LOGIN_EMAIL || "").trim().toLowerCase();
   const password = String(process.env.ADMIN_LOGIN_PASSWORD || "");
   if (!email || !password) throw Object.assign(new Error("Admin login credentials are not configured"), { status: 503 });
-  let authUser = await supabaseAuth.adminFindUserByEmail(email);
-  if (!authUser) {
-    const created = await supabaseAuth.adminCreateUser({ email, password, emailConfirmed: true, data: { name: "EcoStream Administrator", role: "admin" } });
-    authUser = created.user;
-  } else if (repairPassword) {
-    await supabaseAuth.adminUpdateUser(authUser.id, { password, email_confirm: true, user_metadata: { ...(authUser.user_metadata || {}), name: authUser.user_metadata?.name || "EcoStream Administrator", role: "admin" } });
-  } else if (!authUser.email_confirmed_at) {
-    await supabaseAuth.adminUpdateUser(authUser.id, { email_confirm: true, user_metadata: { ...(authUser.user_metadata || {}), name: authUser.user_metadata?.name || "EcoStream Administrator", role: "admin" } });
-  }
-  // The auth trigger may provision a client profile first; immediately enforce
-  // the configured admin identity/role server-side.
-  const { url } = (() => {
-    const u = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-    const k = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-    if (!u || !k) throw Object.assign(new Error("Supabase service role configuration is unavailable"), { status: 503 });
-    return { url: u, key: k };
-  })();
-  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}`, {
-    method: "POST",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
-    body: JSON.stringify({ id: authUser.id, role: "admin", status: "active", name: "EcoStream Administrator", email })
+
+  let authUser = await supabaseAuth.adminFindUserByEmail(email).catch((err) => {
+    // The privileged Admin API may be unavailable during key rotation.
+    // Initial administrator bootstrap can safely fall back to normal Auth signup;
+    // the database trigger promotes only this configured administrator identity.
+    if ([401, 403].includes(err?.status)) return null;
+    throw err;
   });
-  if (!response.ok) throw Object.assign(new Error("Could not provision the configured admin profile"), { status: 503 });
+
+  if (!authUser) {
+    let signup;
+    try {
+      signup = await supabaseAuth.signUpEmail({
+        email,
+        password,
+        data: { name: "EcoStream Administrator" }
+      });
+    } catch (err) {
+      if (![400, 401, 422].includes(err?.status)) throw err;
+      // If signup was rejected because the account already exists, let the
+      // normal password sign-in below determine the real state.
+      signup = null;
+    }
+    if (signup?.user) authUser = signup.user;
+    if (signup?.session) {
+      authUser = await supabaseAuth.getUser(signup.session.access_token);
+    }
+  }
+
+  if (!authUser) {
+    // Final non-privileged recovery: authenticate the configured identity.
+    const session = await supabaseAuth.signIn({ email, password });
+    authUser = await supabaseAuth.getUser(session.access_token);
+  } else if (repairPassword) {
+    // Password repair remains best-effort; the privileged API is optional for
+    // initial bootstrap and must never be required just to authenticate.
+    try {
+      await supabaseAuth.adminUpdateUser(authUser.id, {
+        password,
+        email_confirm: true,
+        user_metadata: {
+          ...(authUser.user_metadata || {}),
+          name: authUser.user_metadata?.name || "EcoStream Administrator",
+          role: "admin"
+        }
+      });
+    } catch (err) {
+      if (![401, 403].includes(err?.status)) throw err;
+    }
+  }
+
   return authUser;
 }
-
 function registerSupabase(router) {
   router.post("/api/auth/admin-login", adminLoginRateLimit, async (req, res) => {
     const { email, password } = req.body;
