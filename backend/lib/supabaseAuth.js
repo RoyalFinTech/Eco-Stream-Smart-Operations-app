@@ -28,6 +28,13 @@ function normalizePhone(phone) {
   if (digits.length === 9) return "+220" + digits;
   throw Object.assign(new Error("Enter a valid Gambian phone number"), { status: 422 });
 }
+async function signUpEmail({ email, password, data }) {
+  return authRequest("signup", "POST", {
+    email: String(email || "").trim().toLowerCase(),
+    password,
+    data: data || {},
+  });
+}
 async function signUp({ phone, password, data }) {
   const normalizedPhone = normalizePhone(phone);
   return authRequest("signup", "POST", { phone: normalizedPhone, password, data: { ...(data || {}), phone: normalizedPhone } });
