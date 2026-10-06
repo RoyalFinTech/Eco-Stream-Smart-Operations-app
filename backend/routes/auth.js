@@ -24,7 +24,7 @@ function normalizePhoneInput(phone) { return supabaseAuth.normalizePhone(phone);
 function validatePin(pin) {
   if (!/^\d{6}$/.test(String(pin || ""))) throw new ValidationError("PIN must be exactly 6 digits");
 }
-async function ensureConfiguredAdmin() {
+async function ensureConfiguredAdmin({ repairPassword = true } = {}) {
   const email = String(process.env.ADMIN_LOGIN_EMAIL || "").trim().toLowerCase();
   const password = String(process.env.ADMIN_LOGIN_PASSWORD || "");
   if (!email || !password) throw Object.assign(new Error("Admin login credentials are not configured"), { status: 503 });
@@ -32,8 +32,10 @@ async function ensureConfiguredAdmin() {
   if (!authUser) {
     const created = await supabaseAuth.adminCreateUser({ email, password, emailConfirmed: true, data: { name: "EcoStream Administrator", role: "admin" } });
     authUser = created.user;
-  } else {
+  } else if (repairPassword) {
     await supabaseAuth.adminUpdateUser(authUser.id, { password, email_confirm: true, user_metadata: { ...(authUser.user_metadata || {}), name: authUser.user_metadata?.name || "EcoStream Administrator", role: "admin" } });
+  } else if (!authUser.email_confirmed_at) {
+    await supabaseAuth.adminUpdateUser(authUser.id, { email_confirm: true, user_metadata: { ...(authUser.user_metadata || {}), name: authUser.user_metadata?.name || "EcoStream Administrator", role: "admin" } });
   }
   // The auth trigger may provision a client profile first; immediately enforce
   // the configured admin identity/role server-side.
@@ -63,8 +65,15 @@ function registerSupabase(router) {
       return sendJSON(res, 401, { error: "Invalid administrator credentials" });
     }
     try {
-      const authUser = await ensureConfiguredAdmin();
-      const session = await supabaseAuth.signIn({ email: configuredEmail, password: configuredPassword });
+      let authUser = await ensureConfiguredAdmin({ repairPassword: false });
+      let session;
+      try {
+        session = await supabaseAuth.signIn({ email: configuredEmail, password: configuredPassword });
+      } catch (firstErr) {
+        // Repair only after a failed sign-in, then retry once.
+        authUser = await ensureConfiguredAdmin({ repairPassword: true });
+        session = await supabaseAuth.signIn({ email: configuredEmail, password: configuredPassword });
+      }
       const profile = await requireProfile(session.access_token, authUser.id);
       if (!profile || profile.role !== "admin") return sendJSON(res, 403, { error: "Administrator profile is not authorized." });
       sendJSON(res, 200, { token: session.access_token, refreshToken: session.refresh_token, user: { ...profile, email: configuredEmail, role: "admin", authProvider: "supabase" } });
