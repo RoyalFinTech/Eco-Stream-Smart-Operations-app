@@ -77,6 +77,10 @@ button{cursor:pointer;}
 
 /* ---------- forms ---------- */
 .field{margin-bottom:16px; text-align:left;}
+ .secret-field{position:relative;}
+ .secret-field input{padding-right:48px!important;}
+ .secret-toggle{position:absolute;right:8px;bottom:7px;width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;}
+ .secret-toggle:hover,.secret-toggle.active{background:var(--sand-deep);color:var(--blue);}
 .field label{display:block; font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;}
 .field input, .field select, .field textarea{
   width:100%; padding:12px 14px; border-radius:11px; border:1.5px solid var(--border); background:var(--card); color:var(--text);
@@ -971,6 +975,7 @@ function showModal(title, body, footer){
   </div>`;
   wrap.addEventListener("click", e=>{ if(e.target===wrap) closeModal(); });
   document.body.appendChild(wrap);
+  enhanceSecretFields(wrap);
 }
 function closeModal(){ const m=document.getElementById("modal-root"); if(m) m.remove(); }
 
@@ -982,9 +987,23 @@ const LOADERS = {
   invoices: loadInvoices, documents: loadDocuments, support: loadSupport,
   chat: loadChat, notifications: loadNotifications, profile: loadProfile,
 };
-function render(){
+function enhanceSecretFields(root=document){
+   root.querySelectorAll('input[type="password"]').forEach((input)=>{
+     if(input.dataset.secretEnhanced) return;
+     input.dataset.secretEnhanced="1";
+     const wrap=document.createElement("div");
+     wrap.className="secret-field";
+     input.parentNode.insertBefore(wrap,input);
+     wrap.appendChild(input);
+     const btn=document.createElement("button");
+     btn.type="button"; btn.className="secret-toggle"; btn.dataset.action="toggle-secret";
+     btn.setAttribute("aria-label","Show password"); btn.title="Show password"; btn.textContent="👁️";
+     wrap.appendChild(btn);
+   });
+ }
+ function render(){
   if(state.chatPoll){ clearInterval(state.chatPoll); state.chatPoll=null; }
-  if(!state.token || !state.user){ renderAuth(); return; }
+  if(!state.token || !state.user){ renderAuth(); enhanceSecretFields(); return; }
   const loader = LOADERS[state.view] || loadDashboard;
   loader();
 }
@@ -996,6 +1015,11 @@ document.addEventListener("click", async (e)=>{
   const t = e.target.closest("[data-action]");
   if(!t) return;
   const action = t.dataset.action;
+  if(action==="toggle-secret"){
+    const input=t.parentElement?.querySelector("input");
+    if(input){ const visible=input.type==="text"; input.type=visible?"password":"text"; t.classList.toggle("active",!visible); t.textContent=visible?"👁️":"🙈"; t.setAttribute("aria-label",visible?"Show password":"Hide password"); t.title=visible?"Show password":"Hide password"; }
+    return;
+  }
 
   if(action==="auth-tab"){ state.authMode = t.dataset.mode; renderAuth(); return; }
   if(action==="passkey-login"){ signInWithPasskey(); return; }
