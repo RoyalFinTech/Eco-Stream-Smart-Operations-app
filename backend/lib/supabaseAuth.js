@@ -147,4 +147,4 @@ async function adminDeleteUser(userId) {
   return adminRequest(`users/${encodeURIComponent(userId)}`, "DELETE");
 }
 
-module.exports = { normalizePhone, internalAuthEmail, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminUpdatePhoneIdentity, adminDeleteUser };
+module.exports = { normalizePhone, internalAuthEmail, signUpEmail, signUp, signIn, refresh, getUser, updateUser, signOut, requestPasswordReset, verifyPhone, adminCreateUser, adminFindUserByEmail, adminFindUserByPhone, adminGetUser, adminListUsers, adminUpdateUser, adminUpdatePhoneIdentity, adminDeleteUser };
