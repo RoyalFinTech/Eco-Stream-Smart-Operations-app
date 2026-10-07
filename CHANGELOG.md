@@ -1,3 +1,11 @@
+## 2026-10-07 — Premium UI/UX Upgrade
+- Added premium EcoStream public landing page at `/` while preserving `/portal/` and `/admin/`.
+- Redesigned administrator dashboard with operations KPIs, application/CRM/CMS command cards, activity feed, responsive navigation and operational smart insights.
+- Redesigned client dashboard with richer KPI cards, project/payment/support actions and smart guidance.
+- Upgraded borehole application with GPS capture, coordinates, address/landmark, water requirement, preferred contact time and site notes.
+- Extended production bookings schema and API to persist the new location and service details.
+- Preserved the official EcoStream repository logo across the redesigned surfaces.
+
 # Changelog
 
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/). Every entry below reflects work actually done and tested in this project's history, not a projected roadmap.
