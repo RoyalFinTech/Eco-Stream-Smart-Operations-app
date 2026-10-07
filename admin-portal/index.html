@@ -204,6 +204,65 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 .site-footer span:last-child{font-weight:800;color:var(--green);}
 @media(max-width:700px){.site-footer{padding:14px 16px;flex-direction:column;text-align:center;}}
 
+
+/* === EcoStream Premium Operations UI v2 === */
+:root{
+  --premium-navy:#071D2B; --premium-ink:#0B1720; --premium-mint:#10B981;
+  --premium-cyan:#22D3EE; --premium-blue:#2563EB; --premium-violet:#7C3AED;
+  --premium-orange:#F59E0B; --premium-line:rgba(15,42,55,.10);
+}
+body{background:radial-gradient(circle at 15% -10%,rgba(16,185,129,.10),transparent 28%),radial-gradient(circle at 100% 0%,rgba(37,99,235,.08),transparent 30%),var(--sand); }
+.app-shell{background:transparent;}
+.sidebar{background:linear-gradient(180deg,#071D2B 0%,#092B2A 55%,#063D2B 100%);border-right:0;box-shadow:18px 0 50px rgba(2,18,28,.16);padding:18px 14px;}
+.sidebar .brand{padding:8px 10px 22px;border-bottom:1px solid rgba(255,255,255,.09);margin-bottom:14px;}
+.sidebar .brand b,.sidebar .brand span{color:#fff;}
+.sidebar .nav-group-label{color:rgba(255,255,255,.42);font-size:10px;letter-spacing:.14em;margin:18px 10px 7px;}
+.nav-item{color:rgba(255,255,255,.72);border:1px solid transparent;border-radius:13px;margin:3px 0;padding:11px 12px;transition:.2s;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px);}
+.nav-item.active{background:linear-gradient(135deg,#0B8F4D,#10B981);color:#fff;box-shadow:0 9px 24px rgba(16,185,129,.22);}
+.nav-item .ic{width:28px;}
+.sidebar-foot{border-top:1px solid rgba(255,255,255,.09);padding-top:14px;}
+.sidebar-foot .btn{color:#fff;border-color:rgba(255,255,255,.15);}
+.main{min-width:0;}
+.topbar{height:76px;background:rgba(255,255,255,.82);backdrop-filter:blur(18px);border-bottom:1px solid var(--premium-line);padding:0 26px;position:sticky;top:0;z-index:20;}
+.topbar h2{font-family:var(--font-body);font-weight:800;letter-spacing:-.03em;}
+.hamburger{border:1px solid var(--border);background:var(--card);border-radius:13px;box-shadow:var(--shadow-soft);}
+.content{max-width:1500px;margin:0 auto;padding:26px 30px 40px;}
+.admin-hero{position:relative;overflow:hidden;border-radius:26px;padding:28px 30px;background:linear-gradient(135deg,#071D2B 0%,#0A4C39 58%,#0B8F4D 100%);color:#fff;box-shadow:0 22px 55px rgba(4,50,35,.18);margin-bottom:20px;}
+.admin-hero:after{content:"";position:absolute;width:260px;height:260px;border:42px solid rgba(255,255,255,.08);border-radius:50%;right:-65px;top:-100px;}
+.admin-hero .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;font-weight:800;color:#A7F3D0;}
+.admin-hero h1{font-family:var(--font-display);font-size:32px;line-height:1.1;margin:5px 0 8px;}
+.admin-hero p{max-width:650px;color:rgba(255,255,255,.78);font-size:13px;}
+.admin-quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;}
+.admin-quick .btn{border-color:rgba(255,255,255,.2);color:#fff;background:rgba(255,255,255,.09);backdrop-filter:blur(8px);}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px;}
+.kpi-card{position:relative;overflow:hidden;border:1px solid var(--premium-line);background:rgba(255,255,255,.88);border-radius:20px;padding:18px;box-shadow:0 12px 32px rgba(9,35,25,.07);transition:.22s;}
+.kpi-card:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(9,35,25,.12);}
+.kpi-card .kpi-icon{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--kpi-bg,#E8F7F0);font-size:19px;margin-bottom:15px;}
+.kpi-card .kpi-value{font-size:27px;font-weight:850;letter-spacing:-.04em;}
+.kpi-card .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);font-weight:700;margin-top:3px;}
+.kpi-card .kpi-meta{font-size:11px;color:var(--green);margin-top:10px;font-weight:700;}
+.ops-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:18px;}
+.ops-card{background:rgba(255,255,255,.9);border:1px solid var(--premium-line);border-radius:22px;box-shadow:var(--shadow-soft);overflow:hidden;}
+.ops-card-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--premium-line);}
+.ops-card-head h3{font-family:var(--font-body);font-size:14px;font-weight:800;}
+.ops-card-body{padding:18px 20px;}
+.module-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px;}
+.module-card{border:1px solid var(--premium-line);background:linear-gradient(145deg,#fff,#F5FAF7);border-radius:18px;padding:16px;min-height:115px;transition:.2s;}
+.module-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-soft);}
+.module-card .module-icon{font-size:22px;margin-bottom:14px;}
+.module-card b{display:block;font-size:13px;}
+.module-card span{display:block;color:var(--text-muted);font-size:11px;line-height:1.45;margin-top:4px;}
+.activity-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--premium-line);}
+.activity-row:last-child{border-bottom:0;}
+.activity-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#EAF7F0;flex:0 0 34px;}
+.insight-card{background:linear-gradient(145deg,#071D2B,#0B3A35);color:#fff;border-radius:20px;padding:20px;box-shadow:0 18px 42px rgba(3,30,35,.18);}
+.insight-card .ai-badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:rgba(34,211,238,.13);color:#67E8F9;font-size:10px;font-weight:800;letter-spacing:.08em;}
+.insight-card h3{font-family:var(--font-body);margin:12px 0 7px;font-size:16px;}
+.insight-card p{font-size:12px;color:rgba(255,255,255,.7);line-height:1.55;}
+@media(max-width:1050px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.ops-grid{grid-template-columns:1fr}.module-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.content{padding:18px 14px 30px}.topbar{padding:0 14px}.admin-hero{padding:22px 20px;border-radius:20px}.admin-hero h1{font-size:27px}.kpi-grid{gap:10px}.kpi-card{padding:14px}.kpi-card .kpi-value{font-size:23px}.module-grid{grid-template-columns:1fr 1fr}.ops-card-head,.ops-card-body{padding:15px}.sidebar{width:min(88vw,320px)}}
+
 </style>
 </head>
 <body>
@@ -470,41 +529,75 @@ async function loadDashboard(){
   }catch(e){ renderShell(errorState("Couldn't load dashboard stats."), "Dashboard"); }
 }
 function dashboardHtml(s, recentActivity=[]){
-  const ACTIVITY_ICON = { login:"🔑", register:"🆕", login_failed:"⚠️", account_locked:"🔒",
-    client_status_change:"🧑‍🤝‍🧑", client_deleted:"🗑️", cms_updated:"📝", password_reset:"🔁", email_verified:"✅" };
+  const ACTIVITY_ICON = { login:"🔑", register:"🆕", login_failed:"⚠️", account_locked:"🔒", client_status_change:"👤", client_deleted:"🗑️", cms_updated:"📝", password_reset:"🔁", email_verified:"✅" };
+  const pending = s.projects.pending || 0;
+  const openTickets = s.tickets.open || 0;
+  const active = s.projects.active || 0;
+  const equipmentPct = s.equipment.total ? Math.round((s.equipment.active/s.equipment.total)*100) : 0;
   return `
-  <div class="hero-band" style="margin-bottom:20px;">
-    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;opacity:.85;font-weight:700;">Company Overview</div>
-    <h1 class="display" style="font-size:26px;margin:4px 0 6px;">${gmd(s.revenue)} in revenue</h1>
-    <div style="font-size:13px;opacity:.85;">Profit to date: ${gmd(s.profit)} · Expenses: ${gmd(s.totalExpenses)}</div>
-  </div>
-  <div class="grid grid-4" style="margin-bottom:8px;">
-    <div class="stat-card"><div class="num" style="color:var(--blue);">${s.projects.active}</div><div class="lbl">Active Projects</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--amber);">${s.projects.pending}</div><div class="lbl">Pending Projects</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--green);">${s.projects.completed}</div><div class="lbl">Completed Projects</div></div>
-    <div class="stat-card"><div class="num">${s.projects.total}</div><div class="lbl">Total Projects</div></div>
-  </div>
-  <div class="grid grid-4">
-    <div class="stat-card"><div class="num">${s.clients.total}</div><div class="lbl">Total Clients</div></div>
-    <div class="stat-card"><div class="num">${s.staff.total}</div><div class="lbl">Staff Members</div></div>
-    <div class="stat-card"><div class="num">${s.equipment.active}/${s.equipment.total}</div><div class="lbl">Equipment Active</div></div>
-    <div class="stat-card"><div class="num" style="color:${s.tickets.open?'var(--amber)':'inherit'};">${s.tickets.open}</div><div class="lbl">Open Tickets</div></div>
-  </div>
-  <div class="section-title">Project Pipeline</div>
-  <div class="card card-pad">
-    ${barChart([{l:"Pending",v:s.projects.pending},{l:"Active",v:s.projects.active},{l:"Completed",v:s.projects.completed}].map(x=>({v:x.v,l:x.l})),"v","l")}
-  </div>
-  <div class="section-title">Recent Activity<button class="btn btn-outline btn-sm" data-action="nav" data-view="audit">View all →</button></div>
-  <div class="card">
-    ${!recentActivity.length ? `<div class="empty" style="padding:24px;">No activity recorded yet.</div>` :
-    recentActivity.map(l=>`<div class="list-item" style="padding:12px 18px;">
-      <div style="font-size:18px;">${ACTIVITY_ICON[l.action]||"•"}</div>
-      <div style="flex:1;"><b style="font-size:12.5px;">${esc(l.actorName)}</b> <span style="font-size:12.5px;color:var(--text-muted);">${esc(l.action.replace(/_/g," "))}</span>
-      <div style="font-size:11px;color:var(--text-faint);">${fmtDateTime(l.date)}</div></div>
-    </div>`).join("")}
-  </div>`;
-}
+  <section class="admin-hero">
+    <div class="eyebrow">EcoStream Operations Centre</div>
+    <h1>Good day, Administrator 👋</h1>
+    <p>One command centre for drilling operations, clients, applications, finance, support, CMS and operational intelligence.</p>
+    <div class="admin-quick">
+      <button class="btn btn-ghost" data-action="nav" data-view="projects">📋 Review Applications</button>
+      <button class="btn btn-ghost" data-action="nav" data-view="clients">👥 Open CRM</button>
+      <button class="btn btn-ghost" data-action="nav" data-view="cms">✦ Manage CMS</button>
+      <button class="btn btn-ghost" data-action="nav" data-view="audit">🛡️ Audit Trail</button>
+    </div>
+  </section>
 
+  <section class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-icon" style="--kpi-bg:#E8F7F0">💧</div><div class="kpi-value">${active}</div><div class="kpi-label">Active Projects</div><div class="kpi-meta">Live field operations</div></div>
+    <div class="kpi-card"><div class="kpi-icon" style="--kpi-bg:#FFF4E5">📋</div><div class="kpi-value">${pending}</div><div class="kpi-label">Applications</div><div class="kpi-meta">${pending ? "Needs review" : "Queue is clear"}</div></div>
+    <div class="kpi-card"><div class="kpi-icon" style="--kpi-bg:#EEF2FF">👥</div><div class="kpi-value">${s.clients.total}</div><div class="kpi-label">CRM Clients</div><div class="kpi-meta">Registered customers</div></div>
+    <div class="kpi-card"><div class="kpi-icon" style="--kpi-bg:#F3EAFE">💰</div><div class="kpi-value">${gmd(s.revenue)}</div><div class="kpi-label">Revenue</div><div class="kpi-meta">Profit ${gmd(s.profit)}</div></div>
+  </section>
+
+  <div class="ops-grid">
+    <section class="ops-card">
+      <div class="ops-card-head"><h3>Operations overview</h3><span class="status-badge status-active">● Live</span></div>
+      <div class="ops-card-body">
+        <div class="grid grid-3">
+          <div class="stat-card"><div class="num">${s.projects.completed}</div><div class="lbl">Completed</div></div>
+          <div class="stat-card"><div class="num">${s.staff.total}</div><div class="lbl">Staff</div></div>
+          <div class="stat-card"><div class="num">${equipmentPct}%</div><div class="lbl">Equipment Ready</div></div>
+        </div>
+        <div class="section-title" style="margin-top:22px;">Project pipeline</div>
+        ${barChart([{l:"Pending",v:pending},{l:"Active",v:active},{l:"Completed",v:s.projects.completed}].map(x=>({v:x.v,l:x.l})),"v","l")}
+      </div>
+    </section>
+    <section class="ops-card">
+      <div class="ops-card-head"><h3>Operational intelligence</h3></div>
+      <div class="ops-card-body">
+        <div class="insight-card">
+          <span class="ai-badge">SMART INSIGHTS</span>
+          <h3>${pending ? `You have ${pending} application${pending===1?"":"s"} waiting for review.` : "Operations are currently clear."}</h3>
+          <p>${openTickets ? `${openTickets} support ticket${openTickets===1?"":"s"} need attention. ` : "No open support tickets. "}Equipment readiness is ${equipmentPct}% based on the current fleet records.</p>
+          <button class="btn btn-ghost" style="margin-top:14px;color:#fff;border-color:rgba(255,255,255,.2);" data-action="nav" data-view="${openTickets ? "tickets" : "projects"}">Open priority queue →</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="section-title" style="margin-top:22px;">Command centre</div>
+  <div class="module-grid">
+    <div class="module-card" data-action="nav" data-view="projects"><div class="module-icon">📋</div><b>Applications</b><span>Review borehole requests and project pipeline.</span></div>
+    <div class="module-card" data-action="nav" data-view="clients"><div class="module-icon">👥</div><b>CRM</b><span>Clients, profiles and customer relationships.</span></div>
+    <div class="module-card" data-action="nav" data-view="cms"><div class="module-icon">📝</div><b>CMS</b><span>Control website content and digital presence.</span></div>
+    <div class="module-card" data-action="nav" data-view="finance"><div class="module-icon">📈</div><b>Reports</b><span>Revenue, expenses and financial operations.</span></div>
+    <div class="module-card" data-action="nav" data-view="equipment"><div class="module-icon">🚜</div><b>Fleet</b><span>Equipment readiness and asset tracking.</span></div>
+    <div class="module-card" data-action="nav" data-view="tickets"><div class="module-icon">🎫</div><b>Support</b><span>Resolve customer issues and service tickets.</span></div>
+    <div class="module-card" data-action="nav" data-view="chat"><div class="module-icon">💬</div><b>Client Chat</b><span>Communicate with customers in real time.</span></div>
+    <div class="module-card" data-action="nav" data-view="audit"><div class="module-icon">🛡️</div><b>Audit</b><span>Review security and operational activity.</span></div>
+  </div>
+
+  <div class="section-title" style="margin-top:22px;">Recent activity <button class="btn btn-outline btn-sm" data-action="nav" data-view="audit">View audit trail →</button></div>
+  <section class="ops-card"><div class="ops-card-body">
+    ${!recentActivity.length ? '<div class="empty" style="padding:24px;">No activity recorded yet.</div>' :
+      recentActivity.map(l=>`<div class="activity-row"><div class="activity-icon">${ACTIVITY_ICON[l.action]||"•"}</div><div style="flex:1"><b style="font-size:12.5px;">${esc(l.actorName)}</b><div style="font-size:12px;color:var(--text-muted);">${esc(l.action.replace(/_/g," "))}</div><div style="font-size:11px;color:var(--text-faint);margin-top:2px;">${fmtDateTime(l.date)}</div></div></div>`).join("")}
+  </div></section>`;
+}
 /* ============================================================
    CLIENTS
    ============================================================ */
