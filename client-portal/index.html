@@ -226,6 +226,50 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 .upload-drop:hover{border-color:var(--green); background:var(--sand-deep);}
 .skeleton{background:linear-gradient(90deg, var(--sand-deep) 25%, var(--border) 37%, var(--sand-deep) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:8px;}
 @keyframes shimmer{0%{background-position:100% 0;} 100%{background-position:-100% 0;}}
+
+/* === EcoStream Premium Client Experience v2 === */
+.client-hero{position:relative;overflow:hidden;border-radius:26px;padding:28px 30px;color:#fff;background:linear-gradient(135deg,#071D2B,#0A5A3A 62%,#0B8F4D);box-shadow:0 22px 55px rgba(4,50,35,.17);margin-bottom:18px;}
+.client-hero:after{content:"";position:absolute;width:240px;height:240px;border:38px solid rgba(255,255,255,.08);border-radius:50%;right:-55px;top:-100px;}
+.client-hero h1{font-family:var(--font-display);font-size:31px;line-height:1.1;margin:5px 0 8px;}
+.client-hero p{font-size:13px;color:rgba(255,255,255,.78);max-width:570px;line-height:1.55;}
+.client-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px;}
+.client-actions .btn{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.2);color:#fff;}
+.client-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;}
+.client-kpi{border:1px solid rgba(15,42,55,.09);border-radius:19px;padding:16px;background:rgba(255,255,255,.9);box-shadow:0 10px 30px rgba(9,35,25,.07);transition:.2s;}
+.client-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(9,35,25,.11);}
+.client-kpi .icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#E8F7F0;margin-bottom:12px;}
+.client-kpi .value{font-size:24px;font-weight:850;letter-spacing:-.04em;}
+.client-kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:750;color:var(--text-muted);margin-top:3px;}
+.client-main-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr);gap:16px;}
+.client-panel{background:rgba(255,255,255,.92);border:1px solid rgba(15,42,55,.09);border-radius:21px;box-shadow:var(--shadow-soft);overflow:hidden;}
+.client-panel-head{display:flex;align-items:center;justify-content:space-between;padding:17px 19px;border-bottom:1px solid var(--border);}
+.client-panel-head h3{font-family:var(--font-body);font-size:14px;font-weight:800;}
+.client-panel-body{padding:18px 19px;}
+.client-feature{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.client-feature-card{border-radius:18px;padding:18px;min-height:145px;color:#fff;background:linear-gradient(145deg,#0A5A3A,#0B8F4D);position:relative;overflow:hidden;}
+.client-feature-card.blue{background:linear-gradient(145deg,#123A68,#1565C0);}
+.client-feature-card:after{content:"";position:absolute;width:120px;height:120px;border:22px solid rgba(255,255,255,.08);border-radius:50%;right:-35px;bottom:-55px;}
+.client-feature-card h3{font-family:var(--font-body);font-size:15px;margin:7px 0;}
+.client-feature-card p{font-size:11px;color:rgba(255,255,255,.74);line-height:1.5;}
+.client-feature-card .btn{margin-top:13px;color:#fff;border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.10);}
+.client-ai{background:linear-gradient(145deg,#071D2B,#0B3A35);color:#fff;border-radius:19px;padding:19px;}
+.client-ai .badge{display:inline-flex;background:rgba(34,211,238,.13);color:#67E8F9;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800;}
+.client-ai h3{font-family:var(--font-body);font-size:15px;margin:11px 0 6px;}
+.client-ai p{font-size:11.5px;line-height:1.55;color:rgba(255,255,255,.7);}
+.booking-shell{max-width:900px;margin:0 auto;}
+.booking-hero{background:linear-gradient(135deg,#071D2B,#0B8F4D);border-radius:24px;padding:22px 24px;color:#fff;margin-bottom:15px;}
+.booking-hero h1{font-family:var(--font-display);font-size:27px;}
+.booking-hero p{font-size:12px;color:rgba(255,255,255,.75);margin-top:5px;}
+.booking-stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 14px;}
+.booking-step{padding:10px;border-radius:13px;background:var(--card);border:1px solid var(--border);font-size:10px;font-weight:800;color:var(--text-muted);}
+.booking-step.active{background:#E8F7F0;border-color:#A7E8C7;color:var(--green-dark);}
+.booking-card{background:var(--card);border:1px solid var(--border);border-radius:21px;padding:20px;box-shadow:var(--shadow-soft);}
+.location-card{border:1px dashed #8BCFAE;background:#F2FBF6;border-radius:17px;padding:15px;margin:12px 0;}
+.location-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.location-actions .btn{font-size:11px;}
+@media(max-width:900px){.client-kpis{grid-template-columns:repeat(2,1fr)}.client-main-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.client-hero{padding:22px 19px}.client-hero h1{font-size:27px}.client-kpis{gap:9px}.client-kpi{padding:13px}.client-kpi .value{font-size:21px}.client-feature{grid-template-columns:1fr}.booking-card{padding:15px}.booking-step{padding:8px 6px;font-size:9px}}
+
 </style>
 </head>
 <body>
@@ -578,38 +622,54 @@ function errorState(msg){
 function dashboardHtml(summary, projects){
   const active = projects.find(p=>p.status==="ongoing");
   return `
-  <div class="hero-band" style="margin-bottom:20px;">
-    <div style="position:relative;z-index:1;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;opacity:.85;font-weight:700;">Welcome back</div>
-      <h1 class="display" style="font-size:26px;margin:4px 0 6px;">${esc(state.user.name)}</h1>
-      <div style="font-size:13px;opacity:.85;max-width:440px;">Track your borehole project, manage payments, and reach our team — all in one place.</div>
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn btn-ghost" style="background:rgba(255,255,255,.18);" data-action="nav" data-view="book">➕ Book Drilling</button>
-        <button class="btn btn-ghost" style="background:rgba(255,255,255,.18);" data-action="nav" data-view="chat">💬 Chat with Us</button>
-      </div>
+  <section class="client-hero">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#A7F3D0;">EcoStream Client Centre</div>
+    <h1>Hello, ${esc(state.user.name)} 👋</h1>
+    <p>Your water project, applications, payments and support — organised in one secure place.</p>
+    <div class="client-actions">
+      <button class="btn btn-ghost" data-action="nav" data-view="book">💧 Book a Borehole</button>
+      <button class="btn btn-ghost" data-action="nav" data-view="chat">💬 Talk to EcoStream</button>
     </div>
-  </div>
-  <div class="grid grid-4">
-    <div class="stat-card"><div class="num">${summary.activeProjects}</div><div class="lbl">Active Projects</div></div>
-    <div class="stat-card"><div class="num">${summary.completedProjects}</div><div class="lbl">Completed Projects</div></div>
-    <div class="stat-card"><div class="num" style="color:var(--green);">${gmd(summary.totalPaid)}</div><div class="lbl">Total Paid</div></div>
-    <div class="stat-card"><div class="num" style="color:${summary.totalDue>0?'var(--amber)':'inherit'};">${gmd(summary.totalDue)}</div><div class="lbl">Outstanding Balance</div></div>
-  </div>
-  ${active ? `
-  <div class="section-title">Current Project</div>
-  <div class="card card-pad" style="display:flex;gap:18px;align-items:center;">
-    ${gauge(active.depth, active.totalDepth, 96)}
-    <div style="flex:1;">
-      <div class="row-between"><b>📍 ${esc(active.location)}</b>${statusBadge(active.status)}</div>
-      <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">${esc(active.notes||"Drilling in progress.")}</div>
-      <button class="btn btn-outline btn-sm" style="margin-top:12px;" data-action="nav" data-view="projects">View Full Timeline →</button>
-    </div>
-  </div>` : `
-  <div class="section-title">Projects</div>
-  <div class="card empty"><div class="ic">🗺️</div>No active project yet.<br><button class="btn btn-primary btn-sm" style="margin-top:12px;" data-action="nav" data-view="book">Book Your First Drilling</button></div>`}
-  `;
-}
+  </section>
 
+  <section class="client-kpis">
+    <div class="client-kpi"><div class="icon">📋</div><div class="value">${summary.activeProjects}</div><div class="label">Active Projects</div></div>
+    <div class="client-kpi"><div class="icon" style="background:#EEF2FF">💧</div><div class="value">${summary.completedProjects}</div><div class="label">Completed</div></div>
+    <div class="client-kpi"><div class="icon" style="background:#ECFDF5">💰</div><div class="value">${gmd(summary.totalPaid)}</div><div class="label">Total Paid</div></div>
+    <div class="client-kpi"><div class="icon" style="background:#FFF4E5">🎫</div><div class="value">${summary.openTickets || 0}</div><div class="label">Support Tickets</div></div>
+  </section>
+
+  <div class="client-main-grid">
+    <section class="client-panel">
+      <div class="client-panel-head"><h3>Your EcoStream journey</h3><button class="btn btn-outline btn-sm" data-action="nav" data-view="projects">View projects →</button></div>
+      <div class="client-panel-body">
+        <div class="client-feature">
+          <div class="client-feature-card">
+            <div style="font-size:21px;">💧</div><h3>${active ? "Your project is underway" : "Start your water project"}</h3>
+            <p>${active ? "Track the latest project status and communicate with our operations team." : "Submit a detailed borehole request with your location and service requirements."}</p>
+            <button class="btn btn-ghost" data-action="nav" data-view="${active ? "projects" : "book"}">${active ? "Track project →" : "Book now →"}</button>
+          </div>
+          <div class="client-feature-card blue">
+            <div style="font-size:21px;">💳</div><h3>Payments & documents</h3>
+            <p>Keep your payment history and project documents accessible from your portal.</p>
+            <button class="btn btn-ghost" data-action="nav" data-view="payments">Open payments →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="client-panel">
+      <div class="client-panel-head"><h3>Smart guidance</h3></div>
+      <div class="client-panel-body">
+        <div class="client-ai">
+          <span class="badge">SMART INSIGHT</span>
+          <h3>${active ? "Keep your project moving." : "Ready for clean water?"}</h3>
+          <p>${active ? "Your active project is already in the system. Use project tracking and chat to stay connected with the field team." : "Start an application with your exact location, intended water use and preferred package so our team can review it faster."}</p>
+          <button class="btn btn-ghost" style="margin-top:13px;color:#fff;border-color:rgba(255,255,255,.2);" data-action="nav" data-view="${active ? "chat" : "book"}">${active ? "Contact team →" : "Start application →"}</button>
+        </div>
+      </div>
+    </aside>
+  </div>`;}
 /* ============================================================
    VIEW: BOOK DRILLING / SITE SURVEY
    ============================================================ */
