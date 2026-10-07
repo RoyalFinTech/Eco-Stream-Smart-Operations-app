@@ -5,7 +5,7 @@ const { requireFields } = require("../lib/validate");
 function register(router) {
   // ---------- POST /api/bookings (client books drilling / requests a site survey) ----------
   router.post("/api/bookings", authenticate, async (req, res) => {
-    const { package: pkg, drillingLocation, areaType, purpose, paymentPlan, requestType } = req.body;
+    const { package: pkg, drillingLocation, areaType, purpose, paymentPlan, requestType, latitude, longitude, locationAddress, waterRequirement, siteNotes, preferredContactTime, gpsAccuracy } = req.body;
     requireFields(req.body, ["drillingLocation"]);
     const booking = await getRequestDb(req).collection("bookings").insert({
       clientId: req.user.id,
@@ -18,6 +18,13 @@ function register(router) {
       status: "pending",
       submittedAt: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
+      latitude: latitude == null || latitude === "" ? null : Number(latitude),
+      longitude: longitude == null || longitude === "" ? null : Number(longitude),
+      locationAddress: locationAddress || "",
+      waterRequirement: waterRequirement || "",
+      siteNotes: siteNotes || "",
+      preferredContactTime: preferredContactTime || "",
+      gpsAccuracy: gpsAccuracy == null || gpsAccuracy === "" ? null : Number(gpsAccuracy),
     });
     sendJSON(res, 201, { booking });
   });
