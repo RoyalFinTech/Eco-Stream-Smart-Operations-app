@@ -678,27 +678,57 @@ function loadBook(){
 }
 function bookHtml(){
   return `
-  <div class="chip-row" style="margin-bottom:18px;display:flex;gap:8px;">
-    <button class="chip active" data-action="book-type" data-type="drilling" id="chip-drilling">💧 Drilling Request</button>
-    <button class="chip" data-action="book-type" data-type="site-survey" id="chip-survey">📐 Site Survey</button>
-  </div>
-  <div class="card card-pad" style="max-width:560px;">
-    <form data-form="booking">
-      <input type="hidden" name="requestType" value="drilling" id="requestTypeInput">
-      <div class="field"><label>Location *</label><input name="drillingLocation" required placeholder="e.g. Bakau, The Gambia"></div>
-      <div class="grid grid-2">
-        <div class="field"><label>Package</label><select name="package"><option value="standard">Standard</option><option value="solar">Solar-Powered</option><option value="premium">Premium</option></select></div>
-        <div class="field"><label>Area Type</label><select name="areaType"><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="agricultural">Agricultural</option></select></div>
+  <div class="booking-shell">
+    <section class="booking-hero">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#A7F3D0;">EcoStream Service Application</div>
+      <h1>Book your borehole</h1>
+      <p>Give our field team the location and requirements they need to plan your water solution.</p>
+    </section>
+    <div class="booking-stepper">
+      <div class="booking-step active">01 · Location</div><div class="booking-step">02 · Service</div><div class="booking-step">03 · Details</div><div class="booking-step">04 · Review</div>
+    </div>
+    <div class="booking-card">
+      <div class="chip-row" style="margin-bottom:18px;display:flex;gap:8px;">
+        <button class="chip active" data-action="book-type" data-type="drilling" id="chip-drilling">💧 Borehole Drilling</button>
+        <button class="chip" data-action="book-type" data-type="site-survey" id="chip-survey">📐 Site Survey</button>
       </div>
-      <div class="grid grid-2">
-        <div class="field"><label>Purpose</label><select name="purpose"><option value="drinking">Drinking Water</option><option value="irrigation">Irrigation</option><option value="livestock">Livestock</option><option value="general">General Use</option></select></div>
-        <div class="field"><label>Payment Plan</label><select name="paymentPlan"><option value="full">Pay in Full</option><option value="installment">Installment</option></select></div>
-      </div>
-      <button class="btn btn-primary btn-block" type="submit">Submit Request</button>
-    </form>
+      <form data-form="booking">
+        <input type="hidden" name="requestType" value="drilling" id="requestTypeInput">
+        <div class="field"><label>Project / Site Location *</label><input name="drillingLocation" required placeholder="e.g. Brikama, Kombo South"></div>
+        <div class="location-card">
+          <div style="font-weight:800;font-size:13px;">📍 Precise site coordinates</div>
+          <div style="font-size:11px;color:var(--text-muted);margin:4px 0 10px;">Use your phone GPS or enter the location manually. This helps our drilling team plan the site visit.</div>
+          <div class="location-actions">
+            <button type="button" class="btn btn-outline btn-sm" data-action="get-location">📡 Use Current Location</button>
+            <span id="gps-status" style="font-size:11px;color:var(--text-muted);align-self:center;">Location not captured</span>
+          </div>
+          <input type="hidden" name="latitude" id="booking-latitude">
+          <input type="hidden" name="longitude" id="booking-longitude">
+          <input type="hidden" name="gpsAccuracy" id="booking-gps-accuracy">
+          <div class="grid grid-2">
+            <div class="field"><label>Latitude</label><input name="latitudeDisplay" id="booking-latitude-display" inputmode="decimal" placeholder="e.g. 13.45"></div>
+            <div class="field"><label>Longitude</label><input name="longitudeDisplay" id="booking-longitude-display" inputmode="decimal" placeholder="-16.68"></div>
+          </div>
+          <div class="field" style="margin-bottom:0;"><label>Address / Landmark</label><input name="locationAddress" placeholder="Nearest landmark, compound or village"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Service Package</label><select name="package"><option value="standard">Standard Borehole</option><option value="solar">Solar-Powered Water Solution</option><option value="premium">Premium / Commercial</option></select></div>
+          <div class="field"><label>Area Type</label><select name="areaType"><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="agricultural">Agricultural</option></select></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Primary Water Use</label><select name="purpose"><option value="drinking">Drinking Water</option><option value="irrigation">Irrigation</option><option value="livestock">Livestock</option><option value="general">General Use</option></select></div>
+          <div class="field"><label>Estimated Water Requirement</label><select name="waterRequirement"><option value="">Select requirement</option><option value="household">Household</option><option value="small-business">Small Business</option><option value="farm">Farm / Irrigation</option><option value="large-commercial">Large / Commercial</option></select></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="field"><label>Payment Plan</label><select name="paymentPlan"><option value="full">Pay in Full</option><option value="installment">Installment</option></select></div>
+          <div class="field"><label>Preferred Contact Time</label><select name="preferredContactTime"><option value="">Any time</option><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option></select></div>
+        </div>
+        <div class="field"><label>Additional Site Information</label><textarea name="siteNotes" rows="4" placeholder="Access roads, existing water source, land conditions, special requirements..."></textarea></div>
+        <button class="btn btn-primary btn-block" type="submit">Submit Borehole Application →</button>
+      </form>
+    </div>
   </div>`;
 }
-
 /* ============================================================
    VIEW: PROJECT TRACKING
    ============================================================ */
@@ -1092,6 +1122,20 @@ document.addEventListener("click", async (e)=>{
   if(action==="close-modal"){ closeModal(); return; }
   if(action==="reload"){ render(); return; }
 
+  if(action==="get-location"){
+    const status=document.getElementById("gps-status");
+    if(!navigator.geolocation){ if(status) status.textContent="GPS is not supported on this device"; return; }
+    if(status) status.textContent="Requesting location…";
+    navigator.geolocation.getCurrentPosition((pos)=>{
+      const lat=pos.coords.latitude.toFixed(7), lng=pos.coords.longitude.toFixed(7);
+      const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};
+      set("booking-latitude",lat); set("booking-longitude",lng); set("booking-gps-accuracy",Math.round(pos.coords.accuracy));
+      set("booking-latitude-display",lat); set("booking-longitude-display",lng);
+      if(status) status.textContent=`GPS captured ±${Math.round(pos.coords.accuracy)}m`;
+      toast("Current location captured","success");
+    },()=>{ if(status) status.textContent="Location permission was not granted"; toast("Please allow location access or enter coordinates manually","error"); },{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+    return;
+  }
   if(action==="book-type"){
     document.querySelectorAll(".chip-row .chip").forEach(c=>c.classList.remove("active"));
     t.classList.add("active");
@@ -1156,6 +1200,9 @@ document.addEventListener("submit", async (e)=>{
   const kind = form.dataset.form;
   const data = Object.fromEntries(new FormData(form).entries());
   if (data.phone) data.phone = String(data.phone).replace(/\D/g, "");
+  if (data.latitudeDisplay) data.latitude = data.latitudeDisplay;
+  if (data.longitudeDisplay) data.longitude = data.longitudeDisplay;
+  delete data.latitudeDisplay; delete data.longitudeDisplay;
   const submitBtn = form.querySelector("button[type=submit]");
   if(submitBtn){ submitBtn.disabled = true; submitBtn.dataset.origText = submitBtn.textContent; submitBtn.textContent = "Please wait…"; }
 
