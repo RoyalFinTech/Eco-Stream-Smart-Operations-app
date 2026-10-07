@@ -60,6 +60,7 @@ router.get("/api/health", (req, res) => {
 const PORT = process.env.PORT || 4000;
 const backendRoot = path.resolve(__dirname, "..");
 const portalRoots = {
+  "/landing": path.join(backendRoot, "landing"),
   "/portal": path.join(backendRoot, "client-portal"),
   "/admin": path.join(backendRoot, "admin-portal"),
 };
@@ -90,7 +91,7 @@ function contentType(filePath) {
 function servePortal(req, res) {
   const parsed = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const rootClientRequest = parsed.pathname === "/" || parsed.pathname === "";
-  const prefix = rootClientRequest ? "/portal" : Object.keys(portalRoots).find((key) => parsed.pathname === key || parsed.pathname.startsWith(key + "/"));
+  const prefix = rootClientRequest ? "/landing" : Object.keys(portalRoots).find((key) => parsed.pathname === key || parsed.pathname.startsWith(key + "/"));
   if (!prefix) return false;
 
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -150,6 +151,7 @@ async function bootstrap() {
   server.listen(PORT, () => {
     logger.info(`EcoStream API listening on port ${PORT} (db=${db.driver})`);
     console.log(`EcoStream service listening on port ${PORT}`);
+    console.log("Public landing: /");
     console.log("Client portal: /portal/");
     console.log("Admin portal: /admin/");
     console.log("Health check: /api/health");
