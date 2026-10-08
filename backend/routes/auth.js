@@ -142,6 +142,36 @@ function registerSupabase(router) {
     return Array.isArray(rows) ? rows[0] : rows;
   }
 
+  // Lightweight registration availability checks for the public client form.
+  // Results are intentionally limited to availability state and are rate-limited.
+  const registrationAvailabilityRateLimit = rateLimit({ windowMs: 60_000, max: 30 });
+  router.get("/api/auth/availability", registrationAvailabilityRateLimit, async (req, res) => {
+    const rawName = String(req.query.name || "").trim().replace(/\\s+/g, " ");
+    const rawPhone = String(req.query.phone || "").trim();
+    const result = { name: { checked: false, available: true }, phone: { checked: false, available: true } };
+
+    if (rawName.length >= 2) {
+      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\\/$/, "");
+      const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+      if (!profileUrl || !key) throw Object.assign(new Error("Supabase server configuration is unavailable"), { status: 503 });
+      const params = new URLSearchParams({ select: "id,name,role", name: `ilike.${rawName}`, limit: "1" });
+      const response = await fetch(`${profileUrl}/rest/v1/profiles?${params.toString()}`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` }
+      });
+      if (!response.ok) throw Object.assign(new Error("Availability check is temporarily unavailable"), { status: 503 });
+      const rows = await response.json();
+      result.name = { checked: true, available: !Array.isArray(rows) || rows.length === 0 };
+    }
+
+    if (rawPhone) {
+      const normalizedPhone = normalizePhoneInput(rawPhone);
+      const existing = await supabaseAuth.adminFindUserByPhone(normalizedPhone);
+      result.phone = { checked: true, available: !existing };
+    }
+
+    sendJSON(res, 200, result);
+  });
+
   router.post("/api/auth/register", async (req, res) => {
     const { name, phone, pin, address } = req.body;
     requireFields(req.body, ["name", "phone", "pin"]);
