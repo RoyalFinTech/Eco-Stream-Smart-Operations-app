@@ -490,11 +490,19 @@ async function api(path, opts={}){
   const publicAuthPath = ["/api/auth/login","/api/auth/register","/api/auth/forgot-pin","/api/auth/refresh","/api/auth/availability"].includes(path);
   if(state.token && !publicAuthPath) headers["Authorization"] = "Bearer " + state.token;
   let res;
+  const controller = new AbortController();
+  const requestTimeout = setTimeout(() => controller.abort(), 20000);
   try{
-    res = await fetch(CONFIG.apiBase + path, { ...opts, headers });
+    res = await fetch(CONFIG.apiBase + path, { ...opts, headers, signal: controller.signal });
   }catch(e){
-    toast("Can't reach the EcoStream server at " + CONFIG.apiBase + ". Is it running?", "error");
+    if(e?.name === "AbortError"){
+      toast("Sign-in is taking too long. Please try again in a moment.", "error");
+      throw new Error("The EcoStream authentication service timed out. Please try again.");
+    }
+    toast("Can't reach the EcoStream server at " + CONFIG.apiBase + ". Please check your connection and try again.", "error");
     throw e;
+  }finally{
+    clearTimeout(requestTimeout);
   }
   let data = {};
   try{ data = await res.json(); }catch{ /* no body */ }
