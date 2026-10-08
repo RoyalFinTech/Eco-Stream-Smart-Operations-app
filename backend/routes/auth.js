@@ -237,9 +237,20 @@ function registerSupabase(router) {
     validatePin(pin);
     try {
       const normalizedPhone = normalizePhoneInput(phone);
-      const authUser = await supabaseAuth.adminFindUserByPhone(normalizedPhone);
-      if (!authUser?.email) return sendJSON(res, 401, { error: "Invalid phone number or PIN" });
-      const session = await supabaseAuth.signIn({ email: authUser.email, password: String(pin) });
+      // Accounts created by EcoStream use a deterministic internal email for
+      // phone + PIN login. Try it directly first so returning users don't wait
+      // for a full Supabase Auth user-list scan on every sign-in.
+      let session;
+      try {
+        session = await supabaseAuth.signIn({ email: supabaseAuth.internalAuthEmail(normalizedPhone), password: String(pin) });
+      } catch (directErr) {
+        // Backward compatibility for accounts created before internal-email
+        // identities were introduced. Do not fallback for service/network errors.
+        if (![400, 401].includes(directErr?.status)) throw directErr;
+        const authUser = await supabaseAuth.adminFindUserByPhone(normalizedPhone);
+        if (!authUser?.email || authUser.email === supabaseAuth.internalAuthEmail(normalizedPhone)) throw directErr;
+        session = await supabaseAuth.signIn({ email: authUser.email, password: String(pin) });
+      }
       const profile = session.user ? await requireProfile(session.access_token, session.user.id) : null;
       if (!profile) return sendJSON(res, 403, { error: "Your EcoStream profile is not available. Contact support." });
       if (profile.status === "suspended") return sendJSON(res, 403, { error: "This account has been suspended. Contact support." });
