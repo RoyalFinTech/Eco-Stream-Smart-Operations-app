@@ -1,3 +1,11 @@
+## 2026-10-08 — Registration UX, availability and biometric enrollment
+- Added live registration availability checks for Gambian mobile numbers and client names.
+- Added server-side unique-name enforcement during client registration.
+- Replaced raw registration/auth error toasts with polished frontend error cards and explicit Cancel / Go to Sign In actions where appropriate.
+- Added optional device biometric/passkey enrollment toggle during registration.
+- Added platform-authenticator capability detection before invoking the secure WebAuthn/passkey ceremony.
+- Reset production client-facing data to a clean state while preserving the administrator account for the first real customer registration test.
+
 ## 2026-10-07 — Premium UI/UX Upgrade
 - Added premium EcoStream public landing page at `/` while preserving `/portal/` and `/admin/`.
 - Redesigned administrator dashboard with operations KPIs, application/CRM/CMS command cards, activity feed, responsive navigation and operational smart insights.
