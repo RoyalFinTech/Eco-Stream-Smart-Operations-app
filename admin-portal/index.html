@@ -103,6 +103,10 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 #toast-root{position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:8px; align-items:center;}
 .toast{background:var(--charcoal); color:#fff; padding:12px 20px; border-radius:99px; font-size:13px; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25); animation:fadeUp .25s ease;}
 .toast.error{background:var(--red);}
+.error-card{display:flex;gap:12px;padding:14px;border-radius:15px;background:var(--red-light);border:1px solid #F0C1BD;color:var(--text);line-height:1.45;}
+.error-card .error-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#fff;color:var(--red);font-size:19px;flex:0 0 auto;}
+.error-card h4{font-size:14px;margin-bottom:3px;}
+.error-card p{font-size:12px;color:var(--text-muted);}
 .toast.success{background:var(--green-dark);}
 
 .modal-overlay{position:fixed; inset:0; background:rgba(10,20,15,.55); backdrop-filter:blur(3px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .2s ease;}
@@ -353,10 +357,13 @@ async function api(path, opts={}){
     if(refreshed) return api(path, { ...opts, _retried: true });
   }
   if(res.status === 401 && !["/api/auth/login","/api/auth/admin-login"].includes(path)){
-    logout(false); toast("Session expired — please log in again.", "error"); throw new Error("unauthorized");
+    logout(false); showFriendlyErrorCard("Your session has ended","For your security, please sign in again."); throw new Error("unauthorized");
   }
-  if(res.status === 403 && !["/api/auth/login","/api/auth/admin-login"].includes(path)){ toast(data.error || "You don't have permission for that.", "error"); throw new Error("forbidden"); }
-  if(!res.ok){ toast(data.error || "Something went wrong ("+res.status+")", "error"); throw new Error(data.error||String(res.status)); }
+  if(res.status === 401 && ["/api/auth/login","/api/auth/admin-login"].includes(path)){
+    showFriendlyErrorCard("Administrator sign-in failed",data.error||"The credentials could not be verified. Please check them and try again."); throw new Error(data.error||"unauthorized");
+  }
+  if(res.status === 403 && !["/api/auth/login","/api/auth/admin-login"].includes(path)){ showFriendlyErrorCard("Access denied",data.error||"You don't have permission for this action."); throw new Error("forbidden"); }
+  if(!res.ok){ showFriendlyErrorCard("Request could not be completed",data.error||"Something went wrong. Please try again."); throw new Error(data.error||String(res.status)); }
   return data;
 }
 async function trySilentRefresh(){
