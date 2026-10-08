@@ -148,6 +148,26 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 .phone-control:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(11,143,77,.12);}
 .phone-country{display:flex;align-items:center;gap:5px;padding:0 10px;background:var(--sand-deep);font-weight:800;font-size:12px;color:var(--text-muted);white-space:nowrap;border-right:1px solid var(--border);}
 .phone-control input{border:0!important;box-shadow:none!important;border-radius:0!important;flex:1;min-width:0;}
+.availability{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 10px;border-radius:10px;font-size:11.5px;font-weight:700;border:1px solid transparent;transition:.2s;}
+.availability.checking{background:var(--sand-deep);color:var(--text-muted);border-color:var(--border);}
+.availability.available{background:#E8F7EF;color:var(--green-dark);border-color:#BDE7CF;}
+.availability.taken{background:var(--red-light);color:var(--red);border-color:#F0C1BD;}
+.availability .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.biometric-option{margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:15px;background:linear-gradient(135deg,var(--sand),var(--blue-light));}
+.biometric-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.biometric-copy{display:flex;align-items:center;gap:10px;}
+.biometric-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--card);box-shadow:var(--shadow-soft);font-size:19px;}
+.switch{position:relative;width:48px;height:28px;flex:0 0 auto;}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.switch-track{position:absolute;inset:0;border-radius:99px;background:var(--border);transition:.2s;cursor:pointer;}
+.switch-track:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:.2s;}
+.switch input:checked + .switch-track{background:var(--green);}
+.switch input:checked + .switch-track:before{transform:translateX(20px);}
+.biometric-status{font-size:11px;color:var(--text-muted);line-height:1.45;margin-top:7px;}
+.error-card{display:flex;gap:12px;padding:14px;border-radius:15px;background:var(--red-light);border:1px solid #F0C1BD;color:var(--text);line-height:1.45;}
+.error-card .error-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#fff;color:var(--red);font-size:19px;flex:0 0 auto;}
+.error-card h4{font-size:14px;margin-bottom:3px;}
+.error-card p{font-size:12px;color:var(--text-muted);}
 .site-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 28px;border-top:1px solid var(--border);color:var(--text-faint);font-size:11px;background:var(--card);}
 .site-footer span:last-child{font-weight:800;color:var(--green);}
 @media(max-width:700px){.site-footer{padding:14px 16px;flex-direction:column;text-align:center;}}
@@ -305,6 +325,7 @@ const state = {
   authMode: "login", // login | register | forgot | reset
   cache: {}, // simple per-view data cache populated by loaders
   chatPoll: null,
+  registrationAvailabilityTimer: null,
 };
 
 const app = document.getElementById("app");
@@ -322,6 +343,21 @@ function toast(msg, type=""){
   t.textContent = msg;
   root.appendChild(t);
   setTimeout(()=>{ t.style.opacity="0"; t.style.transition="opacity .3s"; setTimeout(()=>t.remove(),300); }, 2600);
+}
+
+function showFriendlyErrorCard(title, message, actions="close"){
+  const footer=actions==="account-exists"
+    ? '<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-primary" data-action="go-login">Go to Sign In</button>'
+    : '<button class="btn btn-primary" data-action="close-modal">Close</button>';
+  showModal(title,`<div class="error-card"><div class="error-icon">!</div><div><h4>${esc(title)}</h4><p>${esc(message)}</p></div></div>`,footer);
+}
+async function detectBiometricSupport(){
+  try{
+    if(!window.PublicKeyCredential) return {supported:false,reason:"This browser does not support device passkeys."};
+    if(typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable!=="function") return {supported:true,reason:"Secure device verification is available. Your phone will choose the available method."};
+    const available=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    return available?{supported:true,reason:"Fingerprint/face unlock can be used through your device's secure passkey prompt."}:{supported:true,reason:"Passkeys are supported. Your device may use a secure PIN or another passkey method."};
+  }catch{return {supported:false,reason:"We couldn't check this device's security capability yet."};}
 }
 
 
@@ -342,15 +378,43 @@ async function signInWithPasskey(){
     setAuth(data.session.access_token,data.session.refresh_token,res.user); state.view="dashboard"; toast("Biometric sign-in successful","success"); render();
   }catch(err){ toast(err.message||"Biometric sign-in was not completed.","error"); }
 }
-async function registerPasskey(){
+async function registerPasskey({fromRegistration=false}={}){
   try{
+    const info=await detectBiometricSupport();
+    if(!info.supported) throw new Error(info.reason);
     const client=await getPasskeyClient();
     const {data,error}=await client.auth.registerPasskey();
     if(error) throw error;
-    toast("This device is now registered for biometric/passkey sign-in.","success");
-  }catch(err){ toast(err.message||"Could not register this device.","error"); }
+    toast(fromRegistration?"Biometrics enabled. Your device is ready for secure sign-in.":"This device is now registered for biometric/passkey sign-in.","success");
+    return true;
+  }catch(err){
+    showFriendlyErrorCard(fromRegistration?"Biometric setup was not completed":"Biometric setup unavailable",err.message||"You can enable it later from Profile.");
+    return false;
+  }
 }
 
+function setAvailability(id,stateName,text){
+  const el=document.getElementById(id); if(!el) return;
+  el.hidden=false; el.className="availability "+stateName;
+  el.innerHTML='<span class="dot"></span><span>'+esc(text)+'</span>';
+}
+async function checkRegistrationAvailability(){
+  const nameEl=document.getElementById("registration-name");
+  const phoneEl=document.querySelector('[data-form="register"] input[name="phone"]');
+  if(!nameEl||!phoneEl) return;
+  const name=String(nameEl.value||"").trim().replace(/\s+/g," ");
+  const phone=String(phoneEl.value||"").replace(/\D/g,"");
+  if(name.length>=2) setAvailability("registration-name-status","checking","Checking name…"); else document.getElementById("registration-name-status")?.setAttribute("hidden","");
+  if(phone.length===9) setAvailability("registration-phone-status","checking","Checking mobile number…"); else document.getElementById("registration-phone-status")?.setAttribute("hidden","");
+  if(name.length<2&&phone.length!==9) return;
+  try{
+    const p=new URLSearchParams(); if(name.length>=2)p.set("name",name); if(phone.length===9)p.set("phone",phone);
+    const result=await api("/api/auth/availability?"+p.toString(),{method:"GET"});
+    if(result.name?.checked)setAvailability("registration-name-status",result.name.available?"available":"taken",result.name.available?"✓ Name is available":"✕ Name is taken");
+    if(result.phone?.checked)setAvailability("registration-phone-status",result.phone.available?"available":"taken",result.phone.available?"✓ Mobile number is available":"✕ Mobile number is already registered");
+  }catch{}
+}
+function scheduleRegistrationAvailability(){clearTimeout(state.registrationAvailabilityTimer);state.registrationAvailabilityTimer=setTimeout(checkRegistrationAvailability,420);}
 /* ---------- API layer ---------- */
 async function api(path, opts={}){
   const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
@@ -375,19 +439,16 @@ async function api(path, opts={}){
     if(refreshed) return api(path, { ...opts, _retried: true });
   }
   if(res.status === 401){
-    if(publicAuthPath){
-      const message = data.error || data.message || "Authentication request was rejected.";
-      toast(message, "error");
-      throw new Error(message);
-    }
-    logout(false);
-    toast("Session expired — please log in again.", "error");
-    throw new Error("unauthorized");
+    if(publicAuthPath){const message=data.error||data.message||"Authentication request was rejected.";showFriendlyErrorCard("Sign-in could not be completed",message);throw new Error(message);}
+    logout(false); showFriendlyErrorCard("Your session has ended","For your security, please sign in again."); throw new Error("unauthorized");
   }
-  if(!res.ok){
-    toast(data.error || "Something went wrong (" + res.status + ")", "error");
-    throw new Error(data.error || String(res.status));
+  if(res.status===409){
+    const message=data.error||"This information is already registered.";
+    if(path==="/api/auth/register"&&/phone number|phone/i.test(message))showFriendlyErrorCard("Account already exists","This mobile number is already linked to an EcoStream account. Would you like to sign in instead?","account-exists");
+    else showFriendlyErrorCard("Registration details already used",message);
+    throw new Error(message);
   }
+  if(!res.ok){showFriendlyErrorCard("Request could not be completed",data.error||"Something went wrong. Please try again.");throw new Error(data.error||String(res.status));}
   return data;
 }
 
@@ -503,6 +564,7 @@ function renderAuth(){
       <div class="auth-foot">EcoStream Ltd · +220 380 6666<br><span>Powered by Royal Fintech</span></div>
     </div>
   </div>`;
+  if(mode==="register") setTimeout(bindRegistrationSecurity,0);
 }
 function phoneField(name="phone", value="87"){
   return `<div class="field"><label>Gambian Mobile Number</label>
@@ -528,12 +590,22 @@ function authLoginForm(){
 function authRegisterForm(){
   return `
   <form data-form="register">
-    <div class="field"><label>Full Name</label><input name="name" required autocomplete="name" placeholder="Your full name"></div>
+    <div class="field"><label>Full Name</label><input id="registration-name" name="name" required autocomplete="name" placeholder="Your full name">
+      <div id="registration-name-status" class="availability checking" hidden><span class="dot"></span><span>Checking name…</span></div>
+    </div>
     ${phoneField()}
+    <div id="registration-phone-status" class="availability checking" hidden><span class="dot"></span><span>Checking mobile number…</span></div>
     ${pinField("pin","Create 6-Digit PIN","new-password")}
     <div class="field"><label>Address (optional)</label><input name="address" autocomplete="street-address" placeholder="Area / town"></div>
+    <div class="biometric-option">
+      <div class="biometric-row">
+        <div class="biometric-copy"><div class="biometric-icon">☝️</div><div><b style="font-size:13px;">Enable device biometrics</b><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Fingerprint, face unlock, or secure device PIN</div></div></div>
+        <label class="switch" aria-label="Enable device biometrics"><input id="registration-biometric" type="checkbox" name="biometricOptIn" value="yes"><span class="switch-track"></span></label>
+      </div>
+      <div id="registration-biometric-status" class="biometric-status">Checking device security support…</div>
+    </div>
     <button class="btn btn-primary btn-block" type="submit">Create Secure Account</button>
-    <div class="field-hint" style="margin-top:10px;text-align:center;">No SMS verification is required. After signing in, you can enable device biometrics/passkey.</div>
+    <div class="field-hint" style="margin-top:10px;text-align:center;">No SMS verification is required. If enabled, your phone will open its secure biometric/passkey prompt after account creation.</div>
   </form>`;
 }
 function authForgotForm(){
@@ -1117,9 +1189,11 @@ document.addEventListener("click", async (e)=>{
     return;
   }
 
+  if(action==="go-login"){ closeModal(); state.authMode="login"; renderAuth(); return; }
   if(action==="auth-tab"){ state.authMode = t.dataset.mode; renderAuth(); return; }
   if(action==="passkey-login"){ signInWithPasskey(); return; }
   if(action==="register-passkey"){ registerPasskey(); return; }
+  if(action==="toggle-biometric"){ const input=document.getElementById("registration-biometric"); if(input) input.checked=!input.checked; return; }
   if(action==="nav"){ state.view = t.dataset.view; document.getElementById("sidebar")?.classList.remove("open"); render(); return; }
   if(action==="logout"){ logout(); return; }
   if(action==="toggle-theme"){ toggleTheme(); return; }
@@ -1205,6 +1279,7 @@ document.addEventListener("submit", async (e)=>{
   e.preventDefault();
   const kind = form.dataset.form;
   const data = Object.fromEntries(new FormData(form).entries());
+  const wantsBiometric=kind==="register"&&data.biometricOptIn==="yes"; delete data.biometricOptIn;
   if (data.phone) data.phone = String(data.phone).replace(/\D/g, "");
   if (data.latitudeDisplay) data.latitude = data.latitudeDisplay;
   if (data.longitudeDisplay) data.longitude = data.longitudeDisplay;
@@ -1219,7 +1294,7 @@ document.addEventListener("submit", async (e)=>{
     }
     else if(kind==="register"){
       const res = await api("/api/auth/register", { method:"POST", body: JSON.stringify(data) });
-      setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Account created — welcome to EcoStream!","success"); render();
+      setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Account created — welcome to EcoStream!","success"); render(); if(wantsBiometric) await registerPasskey({fromRegistration:true});
     }
     else if(kind==="forgot"){
       const res = await api("/api/auth/forgot-pin", { method:"POST", body: JSON.stringify(data) });
@@ -1262,6 +1337,14 @@ document.addEventListener("submit", async (e)=>{
     if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.origText; }
   }
 });
+
+function bindRegistrationSecurity(){
+  const form=document.querySelector('[data-form="register"]'); if(!form||form.dataset.securityBound)return; form.dataset.securityBound="1";
+  document.getElementById("registration-name")?.addEventListener("input",scheduleRegistrationAvailability);
+  form.querySelector('input[name="phone"]')?.addEventListener("input",scheduleRegistrationAvailability);
+  document.getElementById("registration-biometric")?.addEventListener("change",async e=>{if(e.target.checked){const info=await detectBiometricSupport();if(!info.supported){e.target.checked=false;showFriendlyErrorCard("Biometrics not available",info.reason);}}});
+  detectBiometricSupport().then(info=>{const el=document.getElementById("registration-biometric-status");if(el)el.textContent=info.reason;});
+}
 
 /* ---------- init ---------- */
 initTheme();
