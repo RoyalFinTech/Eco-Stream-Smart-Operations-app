@@ -16,8 +16,8 @@ function assertProviderConfig() {
     throw new Error("SUPABASE_URL and a Supabase publishable/anon key are required when AUTH_PROVIDER=supabase");
   }
   if (String(process.env.STORAGE_PROVIDER || "local").toLowerCase() === "supabase" &&
-      (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.SUPABASE_BUCKET)) {
-    throw new Error("SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_BUCKET are required when STORAGE_PROVIDER=supabase");
+      (!process.env.SUPABASE_URL || !(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) || !process.env.SUPABASE_BUCKET)) {
+    throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY and SUPABASE_BUCKET are required when STORAGE_PROVIDER=supabase");
   }
 }
 assertProviderConfig();
