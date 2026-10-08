@@ -8,7 +8,9 @@ function config() {
 async function authRequest(path, method, body, accessToken) {
   const { url, key } = config();
   const headers = { apikey: key, Accept: "application/json", "Content-Type": "application/json" };
-  headers.Authorization = `Bearer ${accessToken || key}`;
+  // Supabase publishable/secret keys are opaque API keys, not JWTs. Only a real
+  // user access token belongs in Authorization: Bearer.
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const response = await fetch(`${url}/auth/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await response.text();
   let data = null;
@@ -76,7 +78,8 @@ function adminConfig() {
 
 async function adminRequest(path, method, body) {
   const { url, key } = adminConfig();
-  const headers = { apikey: key, Authorization: `Bearer ${key}`, Accept: "application/json", "Content-Type": "application/json" };
+  // Secret keys must be sent as apikey; they are not JWTs.
+  const headers = { apikey: key, Accept: "application/json", "Content-Type": "application/json" };
   const response = await fetch(`${url}/auth/v1/admin/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await response.text();
   let data = null;
