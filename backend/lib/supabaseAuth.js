@@ -1,7 +1,10 @@
 function config() {
   const url = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
-  if (!url || !key) throw new Error("SUPABASE_URL and a Supabase publishable/anon key are required for public Auth");
+  // This module runs only on the server. Prefer the non-expiring Supabase
+  // secret key when configured; legacy anon JWTs can expire after signing-key
+  // changes and then make every Auth request fail with "token has expired".
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+  if (!url || !key) throw new Error("SUPABASE_URL and a Supabase server/public API key are required for Auth");
   return { url, key };
 }
 
@@ -11,7 +14,17 @@ async function authRequest(path, method, body, accessToken) {
   // Supabase publishable/secret keys are opaque API keys, not JWTs. Only a real
   // user access token belongs in Authorization: Bearer.
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-  const response = await fetch(`${url}/auth/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let response;
+  try {
+    response = await fetch(`${url}/auth/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal });
+  } catch (cause) {
+    if (cause?.name === "AbortError") throw Object.assign(new Error("Authentication service timed out. Please try again."), { status: 504 });
+    throw cause;
+  } finally {
+    clearTimeout(timeout);
+  }
   const text = await response.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
@@ -80,7 +93,17 @@ async function adminRequest(path, method, body) {
   const { url, key } = adminConfig();
   // Secret keys must be sent as apikey; they are not JWTs.
   const headers = { apikey: key, Accept: "application/json", "Content-Type": "application/json" };
-  const response = await fetch(`${url}/auth/v1/admin/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let response;
+  try {
+    response = await fetch(`${url}/auth/v1/admin/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal });
+  } catch (cause) {
+    if (cause?.name === "AbortError") throw Object.assign(new Error("Authentication service timed out. Please try again."), { status: 504 });
+    throw cause;
+  } finally {
+    clearTimeout(timeout);
+  }
   const text = await response.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
