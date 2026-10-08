@@ -331,7 +331,11 @@ function registerSupabase(router) {
       avatarUrl = metadata.avatarUrl || "";
     }
 
-    const profile = await getRequestDb(req).collection("profiles").updateById(req.user.id, patch);
+    // Avatar-only updates live in Auth user metadata; don't issue an empty
+    // PostgREST PATCH against profiles when no profile columns changed.
+    const profile = Object.keys(patch).length
+      ? await getRequestDb(req).collection("profiles").updateById(req.user.id, patch)
+      : req.user.profile;
     if (!profile) return sendJSON(res, 404, { error: "User profile not found" });
     sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone, avatarUrl } });
   });
