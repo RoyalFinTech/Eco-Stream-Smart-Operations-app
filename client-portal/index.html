@@ -354,7 +354,8 @@ async function registerPasskey(){
 /* ---------- API layer ---------- */
 async function api(path, opts={}){
   const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
-  if(state.token) headers["Authorization"] = "Bearer " + state.token;
+  const publicAuthPath = ["/api/auth/login","/api/auth/register","/api/auth/forgot-pin","/api/auth/refresh"].includes(path);
+  if(state.token && !publicAuthPath) headers["Authorization"] = "Bearer " + state.token;
   let res;
   try{
     res = await fetch(CONFIG.apiBase + path, { ...opts, headers });
@@ -365,7 +366,7 @@ async function api(path, opts={}){
   let data = {};
   try{ data = await res.json(); }catch{ /* no body */ }
 
-  if(res.status === 401 && !opts._retried && state.refreshToken && path !== "/api/auth/refresh"){
+  if(res.status === 401 && !publicAuthPath && !opts._retried && state.refreshToken){
     // Access token expired — try a silent refresh once before giving up.
     // This is what makes the refresh token actually useful day-to-day:
     // without it, users would need to log in again every 12h even though
@@ -374,6 +375,11 @@ async function api(path, opts={}){
     if(refreshed) return api(path, { ...opts, _retried: true });
   }
   if(res.status === 401){
+    if(publicAuthPath){
+      const message = data.error || data.message || "Authentication request was rejected.";
+      toast(message, "error");
+      throw new Error(message);
+    }
     logout(false);
     toast("Session expired — please log in again.", "error");
     throw new Error("unauthorized");
