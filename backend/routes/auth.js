@@ -257,7 +257,7 @@ function registerSupabase(router) {
       sendJSON(res, 200, {
         token: session.access_token,
         refreshToken: session.refresh_token,
-        user: { ...profile, phone: session.user?.phone || profile.phone, authProvider: "supabase" }
+        user: { ...profile, phone: session.user?.phone || profile.phone, avatarUrl: session.user?.user_metadata?.avatarUrl || "", authProvider: "supabase" }
       });
     } catch (err) {
       if (err.status === 400 || err.status === 401) return sendJSON(res, 401, { error: "Invalid phone number or PIN" });
@@ -296,7 +296,7 @@ function registerSupabase(router) {
   });
 
   router.get("/api/auth/profile", authenticate, async (req, res) => {
-    sendJSON(res, 200, { user: { ...req.user.profile, phone: req.user.authUser?.phone || req.user.profile?.phone } });
+    sendJSON(res, 200, { user: { ...req.user.profile, phone: req.user.authUser?.phone || req.user.profile?.phone, avatarUrl: req.user.authUser?.user_metadata?.avatarUrl || "" } });
   });
 
   router.put("/api/auth/profile", authenticate, async (req, res) => {
@@ -304,6 +304,10 @@ function registerSupabase(router) {
     if (req.body.name) patch.name = String(req.body.name).trim();
     if (req.body.phone) patch.phone = normalizePhoneInput(req.body.phone);
     if (req.body.address !== undefined) patch.address = req.body.address;
+    const hasAvatar = Object.prototype.hasOwnProperty.call(req.body, "avatarUrl");
+    if (hasAvatar && (typeof req.body.avatarUrl !== "string" || req.body.avatarUrl.length > 250000 || !/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(req.body.avatarUrl))) {
+      return sendJSON(res, 400, { error: "Profile photo must be a compressed JPEG image under 250 KB." });
+    }
 
     if (req.body.phone) {
       const existing = await supabaseAuth.adminFindUserByPhone(patch.phone);
@@ -315,18 +319,21 @@ function registerSupabase(router) {
       await supabaseAuth.adminUpdatePhoneIdentity(req.user.id, patch.phone);
     }
 
-    if (req.body.name) {
+    let avatarUrl = req.user.authUser?.user_metadata?.avatarUrl || "";
+    if (req.body.name || req.body.phone || hasAvatar) {
       const metadata = {
         ...(req.user.authUser.user_metadata || {}),
-        name: patch.name,
+        ...(req.body.name ? { name: patch.name } : {}),
         ...(req.body.phone ? { phone: patch.phone } : {}),
+        ...(hasAvatar ? { avatarUrl: req.body.avatarUrl } : {}),
       };
       await supabaseAuth.updateUser(req.user.accessToken, { data: metadata });
+      avatarUrl = metadata.avatarUrl || "";
     }
 
     const profile = await getRequestDb(req).collection("profiles").updateById(req.user.id, patch);
     if (!profile) return sendJSON(res, 404, { error: "User profile not found" });
-    sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone } });
+    sendJSON(res, 200, { user: { ...profile, phone: patch.phone || req.user.authUser?.phone || profile.phone, avatarUrl } });
   });
 }
 
@@ -545,11 +552,17 @@ If you did not request this, you can ignore this email.`,
 
   // ---------- PUT /api/auth/profile ----------
   router.put("/api/auth/profile", authenticate, async (req, res) => {
-    const { name, phone, address } = req.body;
+    const { name, phone, address, avatarUrl } = req.body;
     const patch = {};
     if (name) patch.name = name;
     if (phone) patch.phone = phone;
     if (address !== undefined) patch.address = address;
+    if (avatarUrl !== undefined) {
+      if (typeof avatarUrl !== "string" || avatarUrl.length > 250000 || !/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(avatarUrl)) {
+        return sendJSON(res, 400, { error: "Profile photo must be a compressed JPEG image under 250 KB." });
+      }
+      patch.avatarUrl = avatarUrl;
+    }
     const updated = await db.collection("users").updateById(req.user.id, patch);
     if (!updated) return sendJSON(res, 404, { error: "User not found" });
     sendJSON(res, 200, { user: publicUser(updated) });
