@@ -2,8 +2,8 @@ const { toSnake, toCamel, normalizeWhere } = require("./supabaseSchemaMap");
 
 function config() {
   const url = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-  const key = process.env.SUPABASE_ANON_KEY || "";
-  if (!url || !key) throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required for Supabase data access");
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+  if (!url || !key) throw new Error("SUPABASE_URL and a Supabase publishable/anon key are required for Supabase data access");
   return { url, key };
 }
 
