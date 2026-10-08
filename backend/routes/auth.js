@@ -146,12 +146,12 @@ function registerSupabase(router) {
   // Results are intentionally limited to availability state and are rate-limited.
   const registrationAvailabilityRateLimit = rateLimit({ windowMs: 60_000, max: 30 });
   router.get("/api/auth/availability", registrationAvailabilityRateLimit, async (req, res) => {
-    const rawName = String(req.query.name || "").trim().replace(/\\s+/g, " ");
+    const rawName = String(req.query.name || "").trim().replace(/\s+/g, " ");
     const rawPhone = String(req.query.phone || "").trim();
     const result = { name: { checked: false, available: true }, phone: { checked: false, available: true } };
 
     if (rawName.length >= 2) {
-      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\\/$/, "");
+      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
       const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
       if (!profileUrl || !key) throw Object.assign(new Error("Supabase server configuration is unavailable"), { status: 503 });
       const params = new URLSearchParams({ select: "id,name,role", name: `ilike.${rawName}`, limit: "1" });
@@ -182,9 +182,9 @@ function registerSupabase(router) {
       if (await supabaseAuth.adminFindUserByPhone(normalizedPhone)) {
         return sendJSON(res, 409, { error: "An account with this phone number already exists" });
       }
-      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\\/$/, "");
+      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
       const profileKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\\s+/g, " ")}`, limit: "1" });
+      const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\s+/g, " ")}`, limit: "1" });
       const nameResponse = await fetch(`${profileUrl}/rest/v1/profiles?${nameParams.toString()}`, {
         headers: { apikey: profileKey, Authorization: `Bearer ${profileKey}` }
       });
