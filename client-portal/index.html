@@ -353,6 +353,13 @@ function esc(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<"
 function fmtDate(d){ if(!d) return "—"; try{ return new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }catch{ return d; } }
 function fmtDateTime(d){ try{ return new Date(d).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch{ return d; } }
 function initials(name){ return (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
+// Returning-user storage may contain either the local 9-digit Gambian number
+// or the full +220 international number. Always send the local 9 digits to
+// the PIN-login endpoint.
+function localGambianPhone(value){
+  const digits=String(value||"").replace(/\D/g,"");
+  return digits.length>=9 ? digits.slice(-9) : digits;
+}
 function toast(msg, type=""){
   const root = document.getElementById("toast-root");
   const t = document.createElement("div");
@@ -549,7 +556,7 @@ function setAuth(token, refreshToken, user){
   localStorage.setItem("eco_token", token);
   if(refreshToken) localStorage.setItem("eco_refresh_token", refreshToken);
   localStorage.setItem("eco_user", JSON.stringify(user));
-  if(user?.phone) localStorage.setItem("eco_returning_phone", String(user.phone).replace(/\D/g,""));
+  if(user?.phone) localStorage.setItem("eco_returning_phone", localGambianPhone(user.phone));
 }
 async function logout(redirect=true){
   const accessToken = state.token;
@@ -1392,8 +1399,8 @@ document.addEventListener("submit", async (e)=>{
 
   try{
     if(kind==="returning"){
-      const remembered=String(localStorage.getItem("eco_returning_phone")||data.phone||"").replace(/\D/g,"");
-      if(remembered.length!==9) throw new Error("This device has no remembered EcoStream account. Choose Use Another Account.");
+      const remembered=localGambianPhone(localStorage.getItem("eco_returning_phone")||data.phone||"");
+      if(remembered.length!==9) throw new Error("This device has no valid remembered EcoStream phone number. Choose Use Another Account and enter your number.");
       data.phone=remembered;
       const res=await api("/api/auth/login",{method:"POST",body:JSON.stringify(data)});
       setAuth(res.token,res.refreshToken,res.user); state.view="dashboard"; toast("Welcome back, "+res.user.name+"!","success"); render();
@@ -1442,7 +1449,12 @@ document.addEventListener("submit", async (e)=>{
       localStorage.setItem("eco_api_base", CONFIG.apiBase);
       toast("API server updated", "success"); closeModal(); render();
     }
-  }catch(err){ /* toast already shown by api() */ }
+  }catch(err){
+    // Validation failures can happen before api() runs; never swallow them
+    // silently or leave returning users thinking the button did nothing.
+    const message=String(err?.message||"Sign-in could not be completed. Please try again.");
+    if(!/Request could not be completed|Sign-in could not be completed|Registration details already used|Account already exists/.test(message)) toast(message,"error");
+  }
   finally{
     if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.origText; }
   }
