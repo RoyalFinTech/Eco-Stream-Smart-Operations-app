@@ -1179,7 +1179,7 @@ function profileHtml(){
     <button class="btn btn-outline btn-sm" style="margin-top:12px;" data-action="edit-profile">✏️ Edit Profile</button>
     <div class="security-setting" style="margin-top:12px;border:1px solid var(--border);border-radius:16px;background:var(--sand);text-align:left;">
   <div class="security-setting-copy"><div class="security-setting-icon">🔐</div><div><b style="font-size:13px;">Biometric / Passkey Sign-In</b><small>Use fingerprint, face unlock, or your device security prompt instead of entering your phone number.</small><div id="profile-biometric-state" class="security-state">Checking security status…</div></div></div>
-  <label class="profile-switch" data-action="profile-biometric-toggle" aria-label="Enable biometric sign-in"><input id="profile-biometric-toggle" type="checkbox" disabled><span class="track"></span></label>
+  <label class="profile-switch" aria-label="Enable biometric sign-in"><input id="profile-biometric-toggle" type="checkbox" disabled><span class="track"></span></label>
 </div>
   </div>
   <div class="card" style="max-width:420px;margin-bottom:18px;">
@@ -1285,8 +1285,7 @@ document.addEventListener("click", async (e)=>{
 
   if(action==="go-login"){ closeModal(); state.authMode="login"; renderAuth(); return; }
   if(action==="auth-tab"){ state.authMode = t.dataset.mode; renderAuth(); return; }
-  if(action==="profile-biometric-toggle"){ setBiometricEnabled(t.querySelector("input")?.checked); return; }
-  if(action==="passkey-login"){ signInWithPasskey(); return; }
+    if(action==="passkey-login"){ signInWithPasskey(); return; }
   if(action==="register-passkey"){ registerPasskey(); return; }
   if(action==="toggle-biometric"){ const input=document.getElementById("registration-biometric"); if(input) input.checked=!input.checked; return; }
   if(action==="nav"){ state.view = t.dataset.view; document.getElementById("sidebar")?.classList.remove("open"); render(); return; }
@@ -1351,6 +1350,7 @@ document.addEventListener("click", async (e)=>{
 });
 
 document.addEventListener("change", (e)=>{
+  if(e.target.id === "profile-biometric-toggle"){ setBiometricEnabled(e.target.checked); return; }
   if(e.target.id === "file-input"){
     const file = e.target.files[0];
     if(!file) return;
