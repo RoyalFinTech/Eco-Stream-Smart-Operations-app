@@ -182,6 +182,17 @@ function registerSupabase(router) {
       if (await supabaseAuth.adminFindUserByPhone(normalizedPhone)) {
         return sendJSON(res, 409, { error: "An account with this phone number already exists" });
       }
+      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\\/$/, "");
+      const profileKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+      const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\\s+/g, " ")}`, limit: "1" });
+      const nameResponse = await fetch(`${profileUrl}/rest/v1/profiles?${nameParams.toString()}`, {
+        headers: { apikey: profileKey, Authorization: `Bearer ${profileKey}` }
+      });
+      if (!nameResponse.ok) throw Object.assign(new Error("Could not verify name availability"), { status: 503 });
+      const nameRows = await nameResponse.json();
+      if (Array.isArray(nameRows) && nameRows.length) {
+        return sendJSON(res, 409, { error: "This name is already taken. Please use another name." });
+      }
       const email = supabaseAuth.internalAuthEmail(normalizedPhone);
       const created = await supabaseAuth.adminCreateUser({
         email,
