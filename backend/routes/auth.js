@@ -305,7 +305,7 @@ function registerSupabase(router) {
     if (req.body.phone) patch.phone = normalizePhoneInput(req.body.phone);
     if (req.body.address !== undefined) patch.address = req.body.address;
     const hasAvatar = Object.prototype.hasOwnProperty.call(req.body, "avatarUrl");
-    if (hasAvatar && (typeof req.body.avatarUrl !== "string" || req.body.avatarUrl.length > 250000 || !/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(req.body.avatarUrl))) {
+    if (hasAvatar && (typeof req.body.avatarUrl !== "string" || req.body.avatarUrl.length > 250000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(req.body.avatarUrl))) {
       return sendJSON(res, 400, { error: "Profile photo must be a compressed JPEG image under 250 KB." });
     }
 
@@ -558,7 +558,7 @@ If you did not request this, you can ignore this email.`,
     if (phone) patch.phone = phone;
     if (address !== undefined) patch.address = address;
     if (avatarUrl !== undefined) {
-      if (typeof avatarUrl !== "string" || avatarUrl.length > 250000 || !/^data:image\\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(avatarUrl)) {
+      if (typeof avatarUrl !== "string" || avatarUrl.length > 250000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(avatarUrl)) {
         return sendJSON(res, 400, { error: "Profile photo must be a compressed JPEG image under 250 KB." });
       }
       patch.avatarUrl = avatarUrl;
