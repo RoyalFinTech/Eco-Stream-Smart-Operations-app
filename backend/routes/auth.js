@@ -200,7 +200,16 @@ function registerSupabase(router) {
         emailConfirmed: true,
         data: { name: String(name).trim(), phone: normalizedPhone, role: "client", address: address || "" }
       });
-      const profile = await provisionClientProfile(created.user, { name, phone: normalizedPhone, address });
+      // Supabase Auth Admin API returns the created user directly (id, email, ...),
+      // while some wrappers/providers return it under { user }. Accept both shapes.
+      const createdUser = created?.user || created;
+      if (!createdUser?.id) {
+        throw Object.assign(new Error("Supabase did not return the new account identity"), { status: 502 });
+      }
+      const profile = await provisionClientProfile(createdUser, { name, phone: normalizedPhone, address });
+      if (!profile?.id) {
+        throw Object.assign(new Error("Customer profile could not be saved"), { status: 503 });
+      }
       const session = await supabaseAuth.signIn({ email, password: String(pin) });
       sendJSON(res, 201, {
         message: "Account created successfully. No SMS verification is required.",
