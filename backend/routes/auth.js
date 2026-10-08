@@ -130,7 +130,7 @@ function registerSupabase(router) {
   // changing the customer-facing account model.
   async function provisionClientProfile(authUser, { name, phone, address }) {
     const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+    const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     if (!profileUrl || !key) throw Object.assign(new Error("Supabase service role configuration is unavailable"), { status: 503 });
     const response = await fetch(`${profileUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}`, {
       method: "POST",
