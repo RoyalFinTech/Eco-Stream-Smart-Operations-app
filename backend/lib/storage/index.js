@@ -44,7 +44,7 @@ function getStorageProvider() {
     case "supabase":
       cachedProvider = createSupabaseProvider({
         projectUrl: process.env.SUPABASE_URL,
-        serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        serviceRoleKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
         bucket: process.env.SUPABASE_BUCKET,
       });
       break;
