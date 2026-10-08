@@ -340,7 +340,8 @@ async function registerPasskey(){
 
 async function api(path, opts={}){
   const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
-  if(state.token) headers["Authorization"] = "Bearer " + state.token;
+  const publicAuthPath = ["/api/auth/login","/api/auth/admin-login","/api/auth/refresh"].includes(path);
+  if(state.token && !publicAuthPath) headers["Authorization"] = "Bearer " + state.token;
   let res;
   try{ res = await fetch(CONFIG.apiBase + path, { ...opts, headers }); }
   catch(e){ toast("Can't reach the EcoStream server at " + CONFIG.apiBase + ". Is it running?", "error"); throw e; }
