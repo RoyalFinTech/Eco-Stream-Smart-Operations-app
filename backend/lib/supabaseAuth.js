@@ -1,14 +1,14 @@
 function config() {
   const url = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
-  if (!url || !key) throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required for Supabase Auth");
+  if (!url || !key) throw new Error("SUPABASE_URL and a Supabase publishable/anon key are required for public Auth");
   return { url, key };
 }
 
 async function authRequest(path, method, body, accessToken) {
   const { url, key } = config();
   const headers = { apikey: key, Accept: "application/json", "Content-Type": "application/json" };
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  headers.Authorization = `Bearer ${accessToken || key}`;
   const response = await fetch(`${url}/auth/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await response.text();
   let data = null;
