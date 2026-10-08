@@ -24,6 +24,18 @@ function normalizePhoneInput(phone) { return supabaseAuth.normalizePhone(phone);
 function validatePin(pin) {
   if (!/^\d{6}$/.test(String(pin || ""))) throw new ValidationError("PIN must be exactly 6 digits");
 }
+function normalizeDisplayName(value) {
+  return String(value || "").trim().replace(/\\s+/g, " ").toLocaleLowerCase();
+}
+async function isDisplayNameTaken(name) {
+  const target = normalizeDisplayName(name);
+  if (!target) return false;
+  // Use Supabase Auth's privileged Admin API, which is already used for phone
+  // availability. This avoids relying on a PostgREST Authorization JWT when
+  // this deployment is configured with a modern sb_secret API key.
+  const users = await supabaseAuth.adminListUsers();
+  return users.some((user) => normalizeDisplayName(user.user_metadata?.name || user.user_metadata?.full_name) === target);
+}
 async function ensureConfiguredAdmin({ repairPassword = true } = {}) {
   const email = String(process.env.ADMIN_LOGIN_EMAIL || "").trim().toLowerCase();
   const password = String(process.env.ADMIN_LOGIN_PASSWORD || "");
@@ -151,23 +163,12 @@ function registerSupabase(router) {
     const result = { name: { checked: false, available: true }, phone: { checked: false, available: true } };
 
     if (rawName.length >= 2) {
-      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-      const apiKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      const serviceJwt = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      if (!profileUrl || !apiKey) throw Object.assign(new Error("Supabase server configuration is unavailable"), { status: 503 });
-      const params = new URLSearchParams({ select: "id,name,role", name: `ilike.${rawName.replace(/[,*()]/g, " ")}`, limit: "1" });
-      const headers = { apikey: apiKey, Accept: "application/json" };
-      // New sb_secret keys authenticate at the API gateway, while PostgREST
-      // still needs a JWT identity when the legacy service-role JWT is configured.
-      if (serviceJwt && serviceJwt.split(".").length === 3) headers.Authorization = `Bearer ${serviceJwt}`;
-      const response = await fetch(`${profileUrl}/rest/v1/profiles?${params.toString()}`, { headers });
-      if (!response.ok) {
-        const detail = await response.text().catch(() => "");
-        console.error("Registration name availability query failed", { status: response.status, detail: detail.slice(0, 500) });
+      try {
+        result.name = { checked: true, available: !(await isDisplayNameTaken(rawName)) };
+      } catch (err) {
+        console.error("Registration name availability check failed", { status: err?.status, message: err?.message });
         throw Object.assign(new Error("Availability check is temporarily unavailable"), { status: 503 });
       }
-      const rows = await response.json();
-      result.name = { checked: true, available: !Array.isArray(rows) || rows.length === 0 };
     }
 
     if (rawPhone) {
@@ -189,20 +190,7 @@ function registerSupabase(router) {
       if (await supabaseAuth.adminFindUserByPhone(normalizedPhone)) {
         return sendJSON(res, 409, { error: "An account with this phone number already exists" });
       }
-      const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-      const profileKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      const serviceJwt = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\s+/g, " ").replace(/[,*()]/g, " ")}`, limit: "1" });
-      const nameHeaders = { apikey: profileKey, Accept: "application/json" };
-      if (serviceJwt && serviceJwt.split(".").length === 3) nameHeaders.Authorization = `Bearer ${serviceJwt}`;
-      const nameResponse = await fetch(`${profileUrl}/rest/v1/profiles?${nameParams.toString()}`, { headers: nameHeaders });
-      if (!nameResponse.ok) {
-        const detail = await nameResponse.text().catch(() => "");
-        console.error("Registration name verification query failed", { status: nameResponse.status, detail: detail.slice(0, 500) });
-        throw Object.assign(new Error("Could not verify name availability"), { status: 503 });
-      }
-      const nameRows = await nameResponse.json();
-      if (Array.isArray(nameRows) && nameRows.length) {
+      if (await isDisplayNameTaken(name)) {
         return sendJSON(res, 409, { error: "This name is already taken. Please use another name." });
       }
       const email = supabaseAuth.internalAuthEmail(normalizedPhone);
