@@ -168,6 +168,22 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 .error-card .error-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#fff;color:var(--red);font-size:19px;flex:0 0 auto;}
 .error-card h4{font-size:14px;margin-bottom:3px;}
 .error-card p{font-size:12px;color:var(--text-muted);}
+.returning-card{max-width:470px;margin:0 auto;padding:28px;border:1px solid var(--border);border-radius:22px;background:var(--card);box-shadow:var(--shadow);}
+.returning-account{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--sand);margin-bottom:18px;}
+.returning-account .mini-avatar{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:var(--green);color:#fff;font-weight:800;}
+.returning-actions{display:grid;gap:10px;margin-top:14px;}
+.security-setting{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;}
+.security-setting-copy{display:flex;gap:11px;align-items:flex-start;}
+.security-setting-icon{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--blue-light);font-size:20px;flex:0 0 auto;}
+.security-setting small{display:block;color:var(--text-muted);font-size:11px;line-height:1.45;margin-top:3px;}
+.security-state{font-size:11px;color:var(--text-muted);margin-top:8px;}
+.profile-switch{position:relative;width:52px;height:30px;flex:0 0 auto;}
+.profile-switch input{opacity:0;width:0;height:0;position:absolute;}
+.profile-switch .track{position:absolute;inset:0;border-radius:99px;background:var(--border);cursor:pointer;transition:.2s;}
+.profile-switch .track:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:.2s;}
+.profile-switch input:checked + .track{background:var(--green);}
+.profile-switch input:checked + .track:before{transform:translateX(22px);}
+@media(max-width:560px){.returning-card{padding:22px;border-radius:18px}.security-setting{padding:14px}.auth-box{width:min(100%,560px);padding:12px;}}
 .site-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 28px;border-top:1px solid var(--border);color:var(--text-faint);font-size:11px;background:var(--card);}
 .site-footer span:last-child{font-weight:800;color:var(--green);}
 @media(max-width:700px){.site-footer{padding:14px 16px;flex-direction:column;text-align:center;}}
@@ -322,10 +338,11 @@ const state = {
   refreshToken: localStorage.getItem("eco_refresh_token") || null,
   user: JSON.parse(localStorage.getItem("eco_user") || "null"),
   view: "dashboard",
-  authMode: "login", // login | register | forgot | reset
+  authMode: (location.pathname.endsWith("/returning") || localStorage.getItem("eco_returning_phone")) ? "returning" : "login", // login | returning | register | forgot | reset
   cache: {}, // simple per-view data cache populated by loaders
   chatPoll: null,
   registrationAvailabilityTimer: null,
+  biometricPasskeys: [],
 };
 
 const app = document.getElementById("app");
@@ -361,36 +378,88 @@ async function detectBiometricSupport(){
 }
 
 
-async function getPasskeyClient(){
+async function getPasskeyClient(withSession=false){
   const cfg = await api("/api/config/public", {headers:{"Content-Type":"application/json"}});
   if(!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error("Supabase public Auth configuration is unavailable.");
   const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/+esm");
-  return createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ experimental:{ passkey:true }, persistSession:false, autoRefreshToken:false } });
+  const client=createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{experimental:{passkey:true},persistSession:false,autoRefreshToken:false}});
+  if(withSession){
+    if(!state.token || !state.refreshToken) throw new Error("Your EcoStream session is not available.");
+    const {error}=await client.auth.setSession({access_token:state.token,refresh_token:state.refreshToken});
+    if(error) throw error;
+  }
+  return client;
 }
 async function signInWithPasskey(){
   try{
     if(!window.PublicKeyCredential) throw new Error("This device or browser does not support passkeys.");
-    const client=await getPasskeyClient();
+    const client=await getPasskeyClient(false);
     const {data,error}=await client.auth.signInWithPasskey();
     if(error) throw error;
-    state.token=data.session.access_token; state.refreshToken=data.session.refresh_token;
-    const res=await api("/api/auth/profile");
-    setAuth(data.session.access_token,data.session.refresh_token,res.user); state.view="dashboard"; toast("Biometric sign-in successful","success"); render();
-  }catch(err){ toast(err.message||"Biometric sign-in was not completed.","error"); }
+    const res=await fetch(CONFIG.apiBase+"/api/auth/profile",{headers:{"Content-Type":"application/json","Authorization":"Bearer "+data.session.access_token}});
+    const profile=await res.json();
+    if(!res.ok) throw new Error(profile.error||"Could not load your EcoStream profile.");
+    setAuth(data.session.access_token,data.session.refresh_token,profile.user);
+    state.view="dashboard"; toast("Biometric sign-in successful","success"); render();
+  }catch(err){ showFriendlyErrorCard("Biometric sign-in could not be completed",err.message||"Try again or use your PIN."); }
+}
+async function listMyPasskeys(){
+  const client=await getPasskeyClient(true);
+  const {data,error}=await client.auth.passkey.list();
+  if(error) throw error;
+  state.biometricPasskeys=Array.isArray(data)?data:[];
+  return state.biometricPasskeys;
 }
 async function registerPasskey({fromRegistration=false}={}){
   try{
     const info=await detectBiometricSupport();
     if(!info.supported) throw new Error(info.reason);
-    const client=await getPasskeyClient();
+    const client=await getPasskeyClient(true);
     const {data,error}=await client.auth.registerPasskey();
     if(error) throw error;
-    toast(fromRegistration?"Biometrics enabled. Your device is ready for secure sign-in.":"This device is now registered for biometric/passkey sign-in.","success");
+    state.biometricPasskeys=[...(state.biometricPasskeys||[]),data].filter(Boolean);
+    toast(fromRegistration?"Biometrics enabled. Your device is ready for secure sign-in.":"Biometric sign-in enabled.","success");
     return true;
   }catch(err){
-    showFriendlyErrorCard(fromRegistration?"Biometric setup was not completed":"Biometric setup unavailable",err.message||"You can enable it later from Profile.");
+    showFriendlyErrorCard(fromRegistration?"Biometric setup was not completed":"Biometric setup unavailable",err.message||"You can enable it again from Profile.");
     return false;
   }
+}
+async function setBiometricEnabled(enabled){
+  const input=document.getElementById("profile-biometric-toggle");
+  if(input) input.disabled=true;
+  try{
+    if(enabled){
+      const ok=await registerPasskey();
+      if(!ok) throw new Error("Biometric enrollment was not completed.");
+    }else{
+      const client=await getPasskeyClient(true);
+      const keys=await listMyPasskeys();
+      if(!keys.length){ toast("Biometrics is already disabled.","success"); return; }
+      if(!confirm("Disable biometric sign-in on this EcoStream account? This removes the registered passkeys. You can enable it again later.")){ if(input) input.checked=true; return; }
+      for(const key of keys){ const {error}=await client.auth.passkey.delete({passkeyId:key.id}); if(error) throw error; }
+      state.biometricPasskeys=[];
+      toast("Biometric sign-in disabled.","success");
+    }
+  }catch(err){
+    if(input) input.checked=!enabled;
+    showFriendlyErrorCard("Biometric setting was not changed",err.message||"Please try again.");
+  }finally{
+    if(input) input.disabled=false;
+    refreshProfileBiometricSetting();
+  }
+}
+async function refreshProfileBiometricSetting(){
+  const input=document.getElementById("profile-biometric-toggle");
+  const stateEl=document.getElementById("profile-biometric-state");
+  if(!input||!stateEl) return;
+  try{
+    const info=await detectBiometricSupport();
+    if(!info.supported){ input.disabled=true; stateEl.textContent=info.reason; return; }
+    const keys=await listMyPasskeys();
+    input.checked=keys.length>0; input.disabled=false;
+    stateEl.textContent=keys.length?keys.length+" secure passkey"+(keys.length===1?"":"s")+" registered on your account.":"No biometric passkey is registered on this account.";
+  }catch(err){ input.disabled=true; stateEl.textContent="Biometric status could not be checked right now."; }
 }
 
 function setAvailability(id,stateName,text){
@@ -472,6 +541,7 @@ function setAuth(token, refreshToken, user){
   localStorage.setItem("eco_token", token);
   if(refreshToken) localStorage.setItem("eco_refresh_token", refreshToken);
   localStorage.setItem("eco_user", JSON.stringify(user));
+  if(user?.phone) localStorage.setItem("eco_returning_phone", String(user.phone).replace(/\D/g,""));
 }
 async function logout(redirect=true){
   const accessToken = state.token;
@@ -489,7 +559,7 @@ async function logout(redirect=true){
   state.token = null; state.refreshToken = null; state.user = null;
   localStorage.removeItem("eco_token"); localStorage.removeItem("eco_refresh_token"); localStorage.removeItem("eco_user");
   if(state.chatPoll) clearInterval(state.chatPoll);
-  state.authMode = "login";
+  state.authMode = localStorage.getItem("eco_returning_phone") ? "returning" : "login";
   if(redirect){ state.view="dashboard"; render(); }
 }
 
@@ -539,7 +609,7 @@ function statusBadge(status){
    ============================================================ */
 function renderAuth(){
   const mode = state.authMode;
-  const tabs = mode!=="reset" && mode!=="verify-phone" ? '<div class="auth-tabs"><button data-action="auth-tab" data-mode="login" class="'+(mode==='login'||mode==='forgot'?'active':'')+'">Sign In</button><button data-action="auth-tab" data-mode="register" class="'+(mode==='register'?'active':'')+'">Create Account</button></div>' : '';
+  const tabs = mode!=="reset" && mode!=="verify-phone" ? '<div class="auth-tabs"><button data-action="auth-tab" data-mode="returning" class="'+(mode==='returning'?'active':'')+'">Returning User</button><button data-action="auth-tab" data-mode="login" class="'+(mode==='login'||mode==='forgot'?'active':'')+'">Use Another Account</button><button data-action="auth-tab" data-mode="register" class="'+(mode==='register'?'active':'')+'">Create Account</button></div>' : '';
   app.innerHTML = `
   <div class="auth-screen">
     <div class="auth-box">
@@ -550,7 +620,7 @@ function renderAuth(){
       </div>
       ${tabs}
       <div class="auth-card">
-        ${mode==="login" ? authLoginForm() : ""}
+        ${mode==="returning" ? authReturningForm() : ""}${mode==="login" ? authLoginForm() : ""}
         ${mode==="register" ? authRegisterForm() : ""}
         ${mode==="forgot" ? authForgotForm() : ""}
         ${mode==="reset" ? authResetForm() : ""}
@@ -574,6 +644,26 @@ function phoneField(name="phone", value="87"){
 }
 function pinField(name="pin", label="6-Digit PIN", autocomplete="current-password"){
   return `<div class="field"><label>${label}</label><input type="password" name="${name}" required inputmode="numeric" autocomplete="${autocomplete}" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>`;
+}
+function authReturningForm(){
+  const remembered=String(localStorage.getItem("eco_returning_phone")||"").replace(/\D/g,"");
+  const masked=remembered.length>=4?"•••• "+remembered.slice(-4):"This device";
+  return `
+  <div class="returning-card">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--green);">Welcome back</div>
+    <h2 style="margin:6px 0 7px;">Return to EcoStream</h2>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:16px;">This device remembers your EcoStream account. Sign in with your PIN, or use your device biometrics.</p>
+    <div class="returning-account"><div class="mini-avatar">E</div><div><b>EcoStream account</b><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Mobile ending ${masked}</div></div></div>
+    <form data-form="returning">
+      <input type="hidden" name="phone" value="${esc(remembered)}">
+      <div class="field"><label>6-Digit PIN</label><input type="password" name="pin" required inputmode="numeric" autocomplete="current-password" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>
+      <button class="btn btn-primary btn-block" type="submit">Sign In with PIN</button>
+    </form>
+    <div class="returning-actions">
+      <button class="btn btn-outline btn-block" type="button" data-action="passkey-login">🔐 Use Biometrics / Passkey</button>
+      <button class="btn btn-ghost btn-block" type="button" data-action="auth-tab" data-mode="login">Use another account</button>
+    </div>
+  </div>`;
 }
 function authLoginForm(){
   return `
@@ -1061,6 +1151,7 @@ function notificationsHtml(items){
 function loadProfile(){
   renderShell(profileHtml(), "Profile & Settings");
   loadSessionsInto("sessions-panel");
+  refreshProfileBiometricSetting();
 }
 async function loadSessionsInto(elId){
   try{
@@ -1086,7 +1177,10 @@ function profileHtml(){
     
     <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">${esc(state.user.phone||"No phone on file")}${state.user.address?" · "+esc(state.user.address):""}</div>
     <button class="btn btn-outline btn-sm" style="margin-top:12px;" data-action="edit-profile">✏️ Edit Profile</button>
-    <button class="btn btn-primary btn-sm" style="margin-top:8px;" data-action="register-passkey">🔐 Enable Phone Biometrics</button>
+    <div class="security-setting" style="margin-top:12px;border:1px solid var(--border);border-radius:16px;background:var(--sand);text-align:left;">
+  <div class="security-setting-copy"><div class="security-setting-icon">🔐</div><div><b style="font-size:13px;">Biometric / Passkey Sign-In</b><small>Use fingerprint, face unlock, or your device security prompt instead of entering your phone number.</small><div id="profile-biometric-state" class="security-state">Checking security status…</div></div></div>
+  <label class="profile-switch" data-action="profile-biometric-toggle" aria-label="Enable biometric sign-in"><input id="profile-biometric-toggle" type="checkbox" disabled><span class="track"></span></label>
+</div>
   </div>
   <div class="card" style="max-width:420px;margin-bottom:18px;">
     <div class="row-between" style="padding:14px 18px;border-bottom:1px solid var(--border);"><b style="font-size:13px;">Dark Mode</b>
@@ -1191,6 +1285,7 @@ document.addEventListener("click", async (e)=>{
 
   if(action==="go-login"){ closeModal(); state.authMode="login"; renderAuth(); return; }
   if(action==="auth-tab"){ state.authMode = t.dataset.mode; renderAuth(); return; }
+  if(action==="profile-biometric-toggle"){ setBiometricEnabled(t.querySelector("input")?.checked); return; }
   if(action==="passkey-login"){ signInWithPasskey(); return; }
   if(action==="register-passkey"){ registerPasskey(); return; }
   if(action==="toggle-biometric"){ const input=document.getElementById("registration-biometric"); if(input) input.checked=!input.checked; return; }
@@ -1288,7 +1383,14 @@ document.addEventListener("submit", async (e)=>{
   if(submitBtn){ submitBtn.disabled = true; submitBtn.dataset.origText = submitBtn.textContent; submitBtn.textContent = "Please wait…"; }
 
   try{
-    if(kind==="login"){
+    if(kind==="returning"){
+      const remembered=String(localStorage.getItem("eco_returning_phone")||data.phone||"").replace(/\D/g,"");
+      if(remembered.length!==9) throw new Error("This device has no remembered EcoStream account. Choose Use Another Account.");
+      data.phone=remembered;
+      const res=await api("/api/auth/login",{method:"POST",body:JSON.stringify(data)});
+      setAuth(res.token,res.refreshToken,res.user); state.view="dashboard"; toast("Welcome back, "+res.user.name+"!","success"); render();
+    }
+    else if(kind==="login"){
       const res = await api("/api/auth/login", { method:"POST", body: JSON.stringify(data) });
       setAuth(res.token, res.refreshToken, res.user); state.view="dashboard"; toast("Welcome back, "+res.user.name+"!", "success"); render();
     }
