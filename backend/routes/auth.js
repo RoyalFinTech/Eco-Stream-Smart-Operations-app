@@ -134,7 +134,7 @@ function registerSupabase(router) {
     if (!profileUrl || !key) throw Object.assign(new Error("Supabase service role configuration is unavailable"), { status: 503 });
     const response = await fetch(`${profileUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}`, {
       method: "POST",
-      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
+      headers: { apikey: key, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify({ id: authUser.id, role: "client", status: "active", name: String(name).trim(), phone, address: address || "" })
     });
     if (!response.ok) throw Object.assign(new Error("Could not provision the customer profile"), { status: 503 });
@@ -156,7 +156,7 @@ function registerSupabase(router) {
       if (!profileUrl || !key) throw Object.assign(new Error("Supabase server configuration is unavailable"), { status: 503 });
       const params = new URLSearchParams({ select: "id,name,role", name: `ilike.${rawName}`, limit: "1" });
       const response = await fetch(`${profileUrl}/rest/v1/profiles?${params.toString()}`, {
-        headers: { apikey: key, Authorization: `Bearer ${key}` }
+        headers: { apikey: key }
       });
       if (!response.ok) throw Object.assign(new Error("Availability check is temporarily unavailable"), { status: 503 });
       const rows = await response.json();
@@ -186,7 +186,7 @@ function registerSupabase(router) {
       const profileKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
       const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\s+/g, " ")}`, limit: "1" });
       const nameResponse = await fetch(`${profileUrl}/rest/v1/profiles?${nameParams.toString()}`, {
-        headers: { apikey: profileKey, Authorization: `Bearer ${profileKey}` }
+        headers: { apikey: profileKey }
       });
       if (!nameResponse.ok) throw Object.assign(new Error("Could not verify name availability"), { status: 503 });
       const nameRows = await nameResponse.json();
