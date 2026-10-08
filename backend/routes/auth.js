@@ -152,13 +152,20 @@ function registerSupabase(router) {
 
     if (rawName.length >= 2) {
       const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
-      const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      if (!profileUrl || !key) throw Object.assign(new Error("Supabase server configuration is unavailable"), { status: 503 });
-      const params = new URLSearchParams({ select: "id,name,role", name: `ilike.${rawName}`, limit: "1" });
-      const response = await fetch(`${profileUrl}/rest/v1/profiles?${params.toString()}`, {
-        headers: { apikey: key }
-      });
-      if (!response.ok) throw Object.assign(new Error("Availability check is temporarily unavailable"), { status: 503 });
+      const apiKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+      const serviceJwt = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+      if (!profileUrl || !apiKey) throw Object.assign(new Error("Supabase server configuration is unavailable"), { status: 503 });
+      const params = new URLSearchParams({ select: "id,name,role", name: `ilike.${rawName.replace(/[,*()]/g, " ")}`, limit: "1" });
+      const headers = { apikey: apiKey, Accept: "application/json" };
+      // New sb_secret keys authenticate at the API gateway, while PostgREST
+      // still needs a JWT identity when the legacy service-role JWT is configured.
+      if (serviceJwt && serviceJwt.split(".").length === 3) headers.Authorization = `Bearer ${serviceJwt}`;
+      const response = await fetch(`${profileUrl}/rest/v1/profiles?${params.toString()}`, { headers });
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        console.error("Registration name availability query failed", { status: response.status, detail: detail.slice(0, 500) });
+        throw Object.assign(new Error("Availability check is temporarily unavailable"), { status: 503 });
+      }
       const rows = await response.json();
       result.name = { checked: true, available: !Array.isArray(rows) || rows.length === 0 };
     }
@@ -184,11 +191,16 @@ function registerSupabase(router) {
       }
       const profileUrl = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
       const profileKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-      const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\s+/g, " ")}`, limit: "1" });
-      const nameResponse = await fetch(`${profileUrl}/rest/v1/profiles?${nameParams.toString()}`, {
-        headers: { apikey: profileKey }
-      });
-      if (!nameResponse.ok) throw Object.assign(new Error("Could not verify name availability"), { status: 503 });
+      const serviceJwt = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+      const nameParams = new URLSearchParams({ select: "id,name,role", name: `ilike.${String(name).trim().replace(/\s+/g, " ").replace(/[,*()]/g, " ")}`, limit: "1" });
+      const nameHeaders = { apikey: profileKey, Accept: "application/json" };
+      if (serviceJwt && serviceJwt.split(".").length === 3) nameHeaders.Authorization = `Bearer ${serviceJwt}`;
+      const nameResponse = await fetch(`${profileUrl}/rest/v1/profiles?${nameParams.toString()}`, { headers: nameHeaders });
+      if (!nameResponse.ok) {
+        const detail = await nameResponse.text().catch(() => "");
+        console.error("Registration name verification query failed", { status: nameResponse.status, detail: detail.slice(0, 500) });
+        throw Object.assign(new Error("Could not verify name availability"), { status: 503 });
+      }
       const nameRows = await nameResponse.json();
       if (Array.isArray(nameRows) && nameRows.length) {
         return sendJSON(res, 409, { error: "This name is already taken. Please use another name." });
