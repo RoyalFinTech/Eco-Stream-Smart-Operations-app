@@ -1,3 +1,12 @@
+## 2026-10-08 — Availability diagnosis + returning-user security flow
+- Fixed the registration availability outage: Supabase publishable/secret API keys are now sent through the `apikey` header instead of being incorrectly placed in `Authorization: Bearer`.
+- Applied the same API-key correction to privileged Auth and profile provisioning calls.
+- Added a dedicated `/portal/returning` route for returning users.
+- Returning users on a recognized device can sign in with the remembered account's 6-digit PIN without re-entering their phone number.
+- Added discoverable passkey/biometric sign-in that can identify the account without a phone number.
+- Added Profile & Settings biometric enable/disable control backed by the user's registered Supabase passkeys.
+- Passkey enrollment now correctly attaches the authenticated Supabase session before the WebAuthn ceremony.
+
 ## 2026-10-08 — Registration UX, availability and biometric enrollment
 - Added live registration availability checks for Gambian mobile numbers and client names.
 - Added server-side unique-name enforcement during client registration.
