@@ -425,7 +425,7 @@ async function registerPasskey({fromRegistration=false}={}){
     return false;
   }
 }
-async async function setBiometricEnabled(enabled){
+async function setBiometricEnabled(enabled){
   const input=document.getElementById("profile-biometric-toggle");
   if(input) input.disabled=true;
   try{
