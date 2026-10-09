@@ -150,14 +150,16 @@ function register(router) {
     const serviceTime = clean(req.body?.serviceTime,80);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate) || !serviceTime) throw new ValidationError("Choose a proposed service date and time.");
     const now = new Date().toISOString();
-    const schedulePatch = {service_date:serviceDate, service_time:serviceTime, schedule_status:"requested", schedule_notes:clean(req.body?.scheduleNotes,1000), updated_at:now};
+    const allowedScheduleStatuses = ["requested","confirmed","reschedule-requested","cancelled"];
+    const scheduleStatus = req.user.role === "client" ? "requested" : (allowedScheduleStatuses.includes(req.body?.scheduleStatus) ? req.body.scheduleStatus : "confirmed");
+    const schedulePatch = {service_date:serviceDate, service_time:serviceTime, schedule_status:scheduleStatus, schedule_notes:clean(req.body?.scheduleNotes,1000), updated_at:now};
     let updated;
     if (req.user.role === "client") {
       // The public client role cannot directly update invoice records; this narrowly-scoped
       // server operation has already verified invoice ownership and only writes scheduling fields.
       const rows = await adminTableRequest("service_invoices", "PATCH", "id=eq."+encodeURIComponent(current.id)+"&client_id=eq."+encodeURIComponent(req.user.id)+"&select=*", schedulePatch);
       if (!rows[0]) return sendJSON(res, 404, {error:"Invoice not found for this customer."});
-      updated = {...current, serviceDate, serviceTime, scheduleStatus:"requested", scheduleNotes:schedulePatch.schedule_notes, updatedAt:now};
+      updated = {...current, serviceDate, serviceTime, scheduleStatus, scheduleNotes:schedulePatch.schedule_notes, updatedAt:now};
       await adminTableRequest("notifications", "POST", "", {
         user_id:null, type:"schedule", title:"Customer requested a service appointment",
         message:"Customer " + current.clientName + " requested " + serviceDate + " at " + serviceTime + " for invoice " + current.invoiceNumber + ". Please review and confirm in the admin portal.",
@@ -172,7 +174,7 @@ function register(router) {
     if (req.user.role !== "client") {
       await db.collection("notifications").insert({
         userId:current.clientId, type:"schedule", title:"Service appointment updated",
-        message:"EcoStream updated the proposed appointment for invoice " + current.invoiceNumber + " to " + serviceDate + " at " + serviceTime + ".",
+        message:(scheduleStatus === "confirmed" ? "EcoStream confirmed your service appointment for invoice " : "EcoStream updated the appointment for invoice ") + current.invoiceNumber + " to " + serviceDate + " at " + serviceTime + ".",
         read:false, date:now.slice(0,10), createdAt:now
       });
     }
