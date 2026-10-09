@@ -717,16 +717,21 @@ function projectsHtml(tab){
   ) : (
     !bookings.length ? `<div class="card empty"><div class="ic">📋</div>No booking requests yet.</div>` :
     `<div class="card">${bookings.map(b=>`
-      <div class="list-item" style="padding:14px 18px;">
-        <div class="avatar" style="background:var(--sand-deep);color:var(--text-muted);">${b.requestType==='site-survey'?'📐':'💧'}</div>
-        <div style="flex:1;">
+      <div class="list-item" style="padding:14px 18px;align-items:flex-start;">
+        <div class="avatar" style="background:var(--sand-deep);color:var(--text-muted);">${({drilling:"💧","site-survey":"📐",maintenance:"🛠️",repair:"🔧","solar-installation":"☀️","pump-service":"⚙️",cleaning:"🫧","water-quality":"🧪"}[b.requestType]||"📋")}</div>
+        <div style="flex:1;min-width:0;">
           <div class="row-between"><b>${esc(clientName(b.clientId))}</b>${statusBadge(b.status)}</div>
-          <div style="font-size:12px;color:var(--text-muted);">${esc(b.drillingLocation)} · ${esc(b.package)} · ${fmtDate(b.submittedAt)}</div>
+          <div style="font-size:12px;font-weight:800;color:var(--green-dark);margin:4px 0;">${esc(({drilling:"Borehole Drilling","site-survey":"Site Survey",maintenance:"Borehole Maintenance",repair:"Borehole Repair","solar-installation":"Solar Water Installation","pump-service":"Water Pump Services",cleaning:"Borehole Cleaning","water-quality":"Water Quality Testing"}[b.requestType]||"Service Request"))}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${esc(b.drillingLocation)} · ${fmtDate(b.submittedAt)}</div>
+          ${b.locationAddress?'<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Landmark: '+esc(b.locationAddress)+'</div>':""}
+          ${b.siteNotes?'<details style="margin-top:7px;font-size:11px;"><summary style="cursor:pointer;color:var(--green-dark);font-weight:750;">View service details</summary><div style="white-space:pre-line;line-height:1.5;color:var(--text-muted);margin-top:6px;">'+esc(b.siteNotes)+'</div></details>':""}
         </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
         ${b.status==="pending" ? `
         <button class="btn btn-outline btn-sm" data-action="booking-status" data-id="${b.id}" data-status="approved">Approve</button>
         <button class="btn btn-outline btn-sm" data-action="booking-status" data-id="${b.id}" data-status="rejected">Reject</button>
-        ` : b.status==="approved" ? `<button class="btn btn-primary btn-sm" data-action="create-project-from-booking" data-id="${b.id}">Create Project</button>` : ""}
+        ` : b.status==="approved" && b.requestType==="drilling" ? `<button class="btn btn-primary btn-sm" data-action="create-project-from-booking" data-id="${b.id}">Create Project</button>` : ""}
+        </div>
       </div>`).join("")}</div>`
   )}
   </div>`;
