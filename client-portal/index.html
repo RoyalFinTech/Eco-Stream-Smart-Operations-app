@@ -1555,7 +1555,8 @@ document.addEventListener("click", async (e)=>{
     return;
   }
   if(action==="open-project"){ openProjectDetail(t.dataset.id); return; }
-  if(action==="view-invoice"){ openInvoice(t.dataset.id); return; }\n  if(action==="view-service-invoice"){ openServiceInvoice(t.dataset.id); return; }
+  if(action==="view-invoice"){ openInvoice(t.dataset.id); return; }
+  if(action==="view-service-invoice"){ openServiceInvoice(t.dataset.id); return; }
   if(action==="print-invoice"){ window.print(); return; }
   if(action==="open-ticket"){ openTicket(t.dataset.id); return; }
   if(action==="new-ticket"){ newTicketForm(); return; }
