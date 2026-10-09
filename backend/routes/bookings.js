@@ -1,18 +1,49 @@
 const { getRequestDb } = require("../lib/requestDb");
 const { sendJSON, authenticate, requireRole } = require("../lib/router");
-const { requireFields } = require("../lib/validate");
+const { requireFields, ValidationError, sanitizeText } = require("../lib/validate");
 
 function register(router) {
   // ---------- POST /api/bookings (client books drilling / requests a site survey) ----------
   router.post("/api/bookings", authenticate, async (req, res) => {
-    const { package: pkg, drillingLocation, areaType, purpose, paymentPlan, requestType, latitude, longitude, locationAddress, waterRequirement, siteNotes, preferredContactTime, gpsAccuracy } = req.body;
-    requireFields(req.body, ["drillingLocation"]);
+    const body = req.body || {};
+    const requestType = String(body.requestType || "drilling");
+    const serviceNames = {
+      drilling: "Borehole Drilling",
+      "site-survey": "Site Survey",
+      maintenance: "Borehole Maintenance",
+      repair: "Borehole Repair",
+      "solar-installation": "Solar Water Installation",
+      "pump-service": "Water Pump Services",
+      cleaning: "Borehole Cleaning",
+      "water-quality": "Water Quality Testing",
+    };
+    const requiredByService = {
+      drilling: [],
+      "site-survey": ["surveyPurpose"],
+      maintenance: ["boreholeProvider", "maintenanceType", "issueDescription"],
+      repair: ["boreholeProvider", "repairIssue", "waterStatus", "urgency", "issueDescription"],
+      "solar-installation": ["solarService", "areaType", "waterRequirement"],
+      "pump-service": ["pumpType", "pumpServiceType"],
+      cleaning: ["boreholeProvider", "cleaningReason"],
+      "water-quality": ["waterSource", "testTypes"],
+    };
+    if (!Object.prototype.hasOwnProperty.call(serviceNames, requestType)) {
+      throw new ValidationError("Please choose one of the available EcoStream services.");
+    }
+    requireFields(body, ["drillingLocation", ...requiredByService[requestType]]);
+    const drillingLocation = sanitizeText(String(body.drillingLocation || "").trim(), 250);
+    if (!drillingLocation) throw new ValidationError("Please enter the project or site address.");
+    if (body.contactPreference && !["phone", "whatsapp", "either"].includes(body.contactPreference)) {
+      throw new ValidationError("Please choose a valid contact preference.");
+    }
 
-    // GPS coordinates are optional. If supplied, require a valid latitude/longitude pair.
+    // GPS is intentionally optional for every service. When provided, coordinates must be a valid pair.
+    const latitude = body.latitude;
+    const longitude = body.longitude;
     const hasLatitude = latitude !== undefined && latitude !== null && String(latitude).trim() !== "";
     const hasLongitude = longitude !== undefined && longitude !== null && String(longitude).trim() !== "";
     if (hasLatitude !== hasLongitude) {
-      return sendJSON(res, 400, { error: "Precise coordinates are optional. If you enter them, provide both latitude and longitude." });
+      throw new ValidationError("Precise coordinates are optional. If you enter them, provide both latitude and longitude.");
     }
     let parsedLatitude = null;
     let parsedLongitude = null;
@@ -21,34 +52,65 @@ function register(router) {
       parsedLongitude = Number(longitude);
       if (!Number.isFinite(parsedLatitude) || parsedLatitude < -90 || parsedLatitude > 90 ||
           !Number.isFinite(parsedLongitude) || parsedLongitude < -180 || parsedLongitude > 180) {
-        return sendJSON(res, 400, { error: "Please enter valid GPS coordinates, or leave both coordinate fields blank." });
+        throw new ValidationError("Please enter valid GPS coordinates, or leave both coordinate fields blank.");
       }
     }
-    const parsedAccuracy = gpsAccuracy == null || gpsAccuracy === "" ? null : Number(gpsAccuracy);
+    const parsedAccuracy = body.gpsAccuracy == null || body.gpsAccuracy === "" ? null : Number(body.gpsAccuracy);
     if (parsedAccuracy !== null && (!Number.isFinite(parsedAccuracy) || parsedAccuracy < 0)) {
-      return sendJSON(res, 400, { error: "GPS accuracy must be a valid non-negative number." });
+      throw new ValidationError("GPS accuracy must be a valid non-negative number.");
     }
 
+    // Keep service-specific answers in the existing site_notes text column.
+    // This avoids requiring a production Supabase schema migration just to add booking types.
+    const detailLabels = {
+      package: "Service package", areaType: "Site type", purpose: "Main water use",
+      waterRequirement: "Expected water demand", paymentPlan: "Preferred payment plan",
+      surveyPurpose: "Survey requested", siteAccess: "Site access",
+      boreholeProvider: "Original borehole provider", maintenanceType: "Maintenance requested",
+      lastMaintenanceDate: "Last maintenance", issueDescription: "Problem / requirements",
+      repairIssue: "Repair needed", waterStatus: "Current water supply", urgency: "Priority",
+      solarService: "Solar service requested", existingPower: "Existing power setup",
+      pumpType: "Pump type", pumpServiceType: "Pump service requested",
+      cleaningReason: "Cleaning reason", lastCleanedDate: "Last cleaned",
+      waterSource: "Water source", testTypes: "Water testing requested",
+      contactPreference: "Preferred contact method",
+    };
+    const detailLines = [];
+    for (const [key, label] of Object.entries(detailLabels)) {
+      const value = body[key];
+      if (value !== undefined && value !== null && String(value).trim() !== "") {
+        detailLines.push(`${label}: ${sanitizeText(String(value).trim(), 500)}`);
+      }
+    }
+    const customerNotes = typeof body.siteNotes === "string" ? sanitizeText(body.siteNotes.trim(), 1800) : "";
+    const serviceNotes = [
+      `Requested service: ${serviceNames[requestType]}`,
+      ...detailLines,
+      customerNotes ? `Additional customer notes: ${customerNotes}` : "",
+    ].filter(Boolean).join("\n");
     const booking = await getRequestDb(req).collection("bookings").insert({
       clientId: req.user.id,
-      requestType: requestType || "drilling", // "drilling" | "site-survey"
-      package: pkg || "standard",
+      requestType,
+      package: sanitizeText(String(body.package || (requestType === "drilling" ? "standard" : requestType)), 80),
       drillingLocation,
-      areaType: areaType || "residential",
-      purpose: purpose || "drinking",
-      paymentPlan: paymentPlan || "full",
+      areaType: sanitizeText(String(body.areaType || "residential"), 80),
+      purpose: sanitizeText(String(body.purpose || "general"), 80),
+      paymentPlan: sanitizeText(String(body.paymentPlan || "full"), 80),
       status: "pending",
       submittedAt: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
       latitude: parsedLatitude,
       longitude: parsedLongitude,
-      locationAddress: locationAddress || "",
-      waterRequirement: waterRequirement || "",
-      siteNotes: siteNotes || "",
-      preferredContactTime: preferredContactTime || "",
+      locationAddress: sanitizeText(String(body.locationAddress || "").trim(), 250),
+      waterRequirement: sanitizeText(String(body.waterRequirement || ""), 100),
+      siteNotes: serviceNotes.slice(0, 4000),
+      preferredContactTime: sanitizeText(String(body.preferredContactTime || ""), 40),
       gpsAccuracy: parsedAccuracy,
     });
-    sendJSON(res, 201, { booking });
+    sendJSON(res, 201, {
+      booking,
+      message: "Your request has been received. The EcoStream team will review the details and contact you about the next steps.",
+    });
   });
 
   // ---------- GET /api/bookings ----------
