@@ -13,6 +13,7 @@ const TABLES = {
     preferredContactTime: "preferred_contact_time", gpsAccuracy: "gps_accuracy",
   },
   payments: { clientId: "client_id", projectId: "project_id", createdAt: "created_at" },
+  service_invoices: { invoiceNumber:"invoice_number", bookingId:"booking_id", clientId:"client_id", serviceType:"service_type", clientName:"client_name", clientPhone:"client_phone", clientAddress:"client_address", serviceAddress:"service_address", lineItems:"line_items", dueDate:"due_date", serviceDate:"service_date", serviceTime:"service_time", scheduleStatus:"schedule_status", scheduleNotes:"schedule_notes", pdfStorageKey:"pdf_storage_key", createdBy:"created_by", approvedBy:"approved_by", approvedAt:"approved_at", sentAt:"sent_at", createdAt:"created_at", updatedAt:"updated_at" },
   notifications: { userId: "user_id", createdAt: "created_at" },
   tickets: { ticketNumber: "ticket_number", clientId: "client_id", createdAt: "created_at", updatedAt: "updated_at" },
   documents: { clientId: "client_id", fileName: "file_name", mimeType: "mime_type", storageKey: "storage_path", uploadedBy: "uploaded_by", createdAt: "created_at" },
