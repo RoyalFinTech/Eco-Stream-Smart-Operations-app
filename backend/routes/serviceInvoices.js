@@ -1,6 +1,7 @@
 const { getRequestDb } = require("../lib/requestDb");
 const { sendJSON, authenticate, requireRole } = require("../lib/router");
 const { ValidationError, sanitizeText } = require("../lib/validate");
+const { toCamel } = require("../lib/supabaseSchemaMap");
 
 const LABELS = {
   drilling: "Borehole Drilling", "site-survey": "Site Survey", maintenance: "Borehole Maintenance",
@@ -64,7 +65,10 @@ async function adminTableRequest(table, method, query, body) {
 
 function register(router) {
   router.get("/api/service-invoices", authenticate, async (req, res) => {
-    const rows = await getRequestDb(req).collection("service_invoices").all();
+    // This table is intentionally not readable by the client-facing publishable key.
+    // Read with the server-only Supabase secret, then enforce ownership here before returning data.
+    const rawRows = await adminTableRequest("service_invoices", "GET", "select=*&order=created_at.desc");
+    const rows = rawRows.map(row => toCamel("service_invoices", row));
     const visible = req.user.role === "client" ? rows.filter(row => row.clientId === req.user.id) : rows;
     sendJSON(res, 200, { invoices: visible.sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))) });
   });
