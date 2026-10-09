@@ -45,6 +45,23 @@ async function getClient(db, id) {
   if (!client) throw Object.assign(new Error("The booking customer profile could not be found."), { status: 404 });
   return client;
 }
+function supabaseAdminConfig() {
+  const url = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!url || !key) throw Object.assign(new Error("Secure invoice scheduling is temporarily unavailable."), {status:503});
+  return {url, key};
+}
+async function adminTableRequest(table, method, query, body) {
+  const {url,key} = supabaseAdminConfig();
+  const response = await fetch(url + "/rest/v1/" + table + (query ? "?" + query : ""), {
+    method, headers:{apikey:key, Authorization:"Bearer " + key, "Content-Type":"application/json", Prefer:"return=representation"}, body:body===undefined?undefined:JSON.stringify(body)
+  });
+  const raw = await response.text();
+  let data=[]; try { data=raw?JSON.parse(raw):[]; } catch {}
+  if (!response.ok) throw Object.assign(new Error("Could not save the service appointment request."), {status:502});
+  return Array.isArray(data) ? data : [];
+}
+
 function register(router) {
   router.get("/api/service-invoices", authenticate, async (req, res) => {
     const rows = await getRequestDb(req).collection("service_invoices").all();
@@ -133,17 +150,26 @@ function register(router) {
     const serviceTime = clean(req.body?.serviceTime,80);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate) || !serviceTime) throw new ValidationError("Choose a proposed service date and time.");
     const now = new Date().toISOString();
-    const updated = await db.collection("service_invoices").updateById(current.id, {
-      serviceDate, serviceTime, scheduleStatus:"requested",
-      scheduleNotes:clean(req.body?.scheduleNotes,1000), updatedAt:now
-    });
+    const schedulePatch = {service_date:serviceDate, service_time:serviceTime, schedule_status:"requested", schedule_notes:clean(req.body?.scheduleNotes,1000), updated_at:now};
+    let updated;
     if (req.user.role === "client") {
-      await db.collection("notifications").insert({
-        userId:null, type:"schedule", title:"Customer requested a service appointment",
+      // The public client role cannot directly update invoice records; this narrowly-scoped
+      // server operation has already verified invoice ownership and only writes scheduling fields.
+      const rows = await adminTableRequest("service_invoices", "PATCH", "id=eq."+encodeURIComponent(current.id)+"&client_id=eq."+encodeURIComponent(req.user.id)+"&select=*", schedulePatch);
+      if (!rows[0]) return sendJSON(res, 404, {error:"Invoice not found for this customer."});
+      updated = {...current, serviceDate, serviceTime, scheduleStatus:"requested", scheduleNotes:schedulePatch.schedule_notes, updatedAt:now};
+      await adminTableRequest("notifications", "POST", "", {
+        user_id:null, type:"schedule", title:"Customer requested a service appointment",
         message:"Customer " + current.clientName + " requested " + serviceDate + " at " + serviceTime + " for invoice " + current.invoiceNumber + ". Please review and confirm in the admin portal.",
-        read:false, date:now.slice(0,10), createdAt:now
+        read:false, date:now.slice(0,10), created_at:now
       });
     } else {
+      updated = await db.collection("service_invoices").updateById(current.id, {
+        serviceDate, serviceTime, scheduleStatus:"requested",
+        scheduleNotes:clean(req.body?.scheduleNotes,1000), updatedAt:now
+      });
+    }
+    if (req.user.role !== "client") {
       await db.collection("notifications").insert({
         userId:current.clientId, type:"schedule", title:"Service appointment updated",
         message:"EcoStream updated the proposed appointment for invoice " + current.invoiceNumber + " to " + serviceDate + " at " + serviceTime + ".",
