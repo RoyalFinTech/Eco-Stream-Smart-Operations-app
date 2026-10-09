@@ -1290,13 +1290,18 @@ document.addEventListener("click", async (e)=>{
 
   if(action==="proj-tab"){ document.getElementById("view-root").innerHTML = projectsHtml(t.dataset.tab); return; }
   if(action==="open-project"){ openProjectDetail(t.dataset.id); return; }
-  if(action==="prepare-service-invoice"){\n    try{const r=await api("/api/service-invoices/draft",{method:"POST",body:JSON.stringify({bookingId:t.dataset.id})});toast(r.message||"Draft prepared","success");serviceInvoiceEditor(r.invoice);}catch(err){}
-    return;\n  }
+  if(action==="prepare-service-invoice"){
+    try{const r=await api("/api/service-invoices/draft",{method:"POST",body:JSON.stringify({bookingId:t.dataset.id})});toast(r.message||"Draft prepared","success");serviceInvoiceEditor(r.invoice);}catch(err){}
+    return;
+  }
   if(action==="edit-service-invoice"){const inv=(state.cache.serviceInvoices||[]).find(x=>x.id===t.dataset.id);if(inv)serviceInvoiceEditor(inv);return;}
   if(action==="view-service-invoice-admin"){const inv=(state.cache.serviceInvoices||[]).find(x=>x.id===t.dataset.id);if(inv)serviceInvoicePreview(inv);return;}
   if(action==="print-service-invoice"){window.print();return;}
-  if(action==="send-service-invoice"){\n    if(!confirm("Approve this reviewed invoice and make it visible to the customer? Confirm that all prices and payment terms are correct."))return;\n    try{const r=await api("/api/service-invoices/"+t.dataset.id+"/send",{method:"POST",body:JSON.stringify({})});toast(r.message||"Invoice sent","success");loadServiceInvoices();}catch(err){}
-    return;\n  }
+  if(action==="send-service-invoice"){
+    if(!confirm("Approve this reviewed invoice and make it visible to the customer? Confirm that all prices and payment terms are correct."))return;
+    try{const r=await api("/api/service-invoices/"+t.dataset.id+"/send",{method:"POST",body:JSON.stringify({})});toast(r.message||"Invoice sent","success");loadServiceInvoices();}catch(err){}
+    return;
+  }
   if(action==="booking-status"){
     try{ await api("/api/bookings/"+t.dataset.id, {method:"PUT", body:JSON.stringify({status:t.dataset.status})}); toast("Booking updated","success"); loadProjects("bookings"); }catch{}
     return;
