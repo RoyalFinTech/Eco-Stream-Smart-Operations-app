@@ -305,8 +305,8 @@ function registerSupabase(router) {
     if (req.body.phone) patch.phone = normalizePhoneInput(req.body.phone);
     if (req.body.address !== undefined) patch.address = req.body.address;
     const hasAvatar = Object.prototype.hasOwnProperty.call(req.body, "avatarUrl");
-    if (hasAvatar && (typeof req.body.avatarUrl !== "string" || req.body.avatarUrl.length > 250000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(req.body.avatarUrl))) {
-      return sendJSON(res, 400, { error: "Profile photo must be a compressed JPEG image under 250 KB." });
+    if (hasAvatar && (typeof req.body.avatarUrl !== "string" || req.body.avatarUrl.length > 250000 || (req.body.avatarUrl !== "" && !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(req.body.avatarUrl)))) {
+      return sendJSON(res, 400, { error: "Profile photo must be a compressed JPEG image under 250 KB, or an empty value to remove it." });
     }
 
     if (req.body.phone) {
