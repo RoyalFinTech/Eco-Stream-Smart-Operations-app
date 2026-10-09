@@ -9,6 +9,8 @@ const TABLES = {
   bookings: {
     clientId: "client_id", requestType: "request_type", drillingLocation: "drilling_location", areaType: "area_type",
     paymentPlan: "payment_plan", submittedAt: "submitted_at", createdAt: "created_at",
+    locationAddress: "location_address", waterRequirement: "water_requirement", siteNotes: "site_notes",
+    preferredContactTime: "preferred_contact_time", gpsAccuracy: "gps_accuracy",
   },
   payments: { clientId: "client_id", projectId: "project_id", createdAt: "created_at" },
   notifications: { userId: "user_id", createdAt: "created_at" },
