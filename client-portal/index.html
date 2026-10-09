@@ -365,6 +365,16 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 @media(max-width:650px){.client-hero{padding:22px 19px}.client-hero h1{font-size:27px}.client-kpis{gap:9px}.client-kpi{padding:13px}.client-kpi .value{font-size:21px}.client-feature{grid-template-columns:1fr}.booking-card{padding:15px}.booking-step{padding:8px 6px;font-size:9px}}
 
 </style>
+<style>
+@media print {
+  body * { visibility:hidden !important; }
+  #invoice-print-area, #invoice-print-area * { visibility:visible !important; }
+  #invoice-print-area { position:absolute !important; left:0 !important; top:0 !important; width:100% !important; max-width:none !important; box-shadow:none !important; border-radius:0 !important; padding:8mm !important; }
+  #modal-root, #modal-root .modal, #modal-root .modal-body { position:static !important; display:block !important; width:100% !important; max-width:none !important; max-height:none !important; overflow:visible !important; box-shadow:none !important; border:0 !important; padding:0 !important; margin:0 !important; background:#fff !important; }
+  #modal-root .modal-header, #modal-root .modal-footer, #modal-root form { display:none !important; }
+  @page { size:A4; margin:10mm; }
+}
+</style>
 </head>
 <body>
 <div id="toast-root"></div>
@@ -1130,12 +1140,12 @@ async function openProjectDetail(id){
 async function loadInvoices(){
   renderShell(loadingSkeleton(), "Payments & Invoices");
   try{
-    const { invoices } = await api("/api/invoices");
-    state.cache.invoices = invoices;
-    renderShell(invoicesHtml(invoices), "Payments & Invoices");
-  }catch(e){ renderShell(errorState("Couldn't load invoices."), "Payments & Invoices"); }
+    const [{invoices},{invoices:serviceInvoices}] = await Promise.all([api("/api/invoices"),api("/api/service-invoices")]);
+    state.cache.invoices = invoices; state.cache.serviceInvoices=serviceInvoices;
+    renderShell(invoicesHtml(invoices,serviceInvoices), "Payments & Invoices");
+  }catch(e){ renderShell(errorState("Couldn't load invoices. Please retry in a moment."), "Payments & Invoices"); }
 }
-function invoicesHtml(invoices){
+function invoicesHtml(invoices,serviceInvoices=[]){
   const paid = invoices.filter(i=>i.status==="paid").reduce((s,i)=>s+i.amount,0);
   const due = invoices.filter(i=>i.status!=="paid").reduce((s,i)=>s+i.amount,0);
   return `
@@ -1153,8 +1163,42 @@ function invoicesHtml(invoices){
       </div>
       <button class="btn btn-outline btn-sm" data-action="view-invoice" data-id="${i.id}">View</button>
     </div>`).join("")}</div>`}
+  ${serviceInvoices.length ? `
+    <div class="section-title" style="margin-top:24px;">EcoStream Service Invoices</div>
+    <div class="field-hint" style="margin-bottom:12px;">Your reviewed invoices, service details and appointment requests.</div>
+    <div class="card card-pad">${serviceInvoices.map(i=>`
+      <div class="list-item" style="align-items:flex-start;">
+        <div class="avatar" style="background:linear-gradient(135deg,#087f50,#063b38);">🧾</div>
+        <div style="flex:1;min-width:0;">
+          <div class="row-between"><b>${esc(i.invoiceNumber)}</b>${statusBadge(i.status)}</div>
+          <div style="font-size:12px;color:var(--green);font-weight:800;margin:4px 0;">${esc(({drilling:"Borehole Drilling","site-survey":"Site Survey",maintenance:"Borehole Maintenance",repair:"Borehole Repair","solar-installation":"Solar Water Installation","pump-service":"Water Pump Services",cleaning:"Borehole Cleaning","water-quality":"Water Quality Testing"})[i.serviceType]||i.serviceType)}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${esc(i.serviceAddress||"")} · ${fmtDate(i.createdAt)}</div>
+          ${i.status==="draft"||i.status==="approved"?'<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">EcoStream is preparing this invoice. It will appear here once approved and sent.</div>':`<div style="font-size:13px;font-weight:800;margin-top:5px;">${gmd(i.total||0)}</div>`}
+          ${i.serviceDate?`<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Appointment: ${fmtDate(i.serviceDate)} ${esc(i.serviceTime||"")} · ${esc(i.scheduleStatus||"")}</div>`:""}
+        </div>
+        ${["sent","paid"].includes(i.status)?`<button class="btn btn-outline btn-sm" data-action="view-service-invoice" data-id="${i.id}">View / PDF</button>`:""}
+      </div>`).join("")}</div>` : `
+    <div class="section-title" style="margin-top:24px;">EcoStream Service Invoices</div>
+    <div class="card empty"><div class="ic">🧾</div>Your approved service invoices will appear here after EcoStream reviews and sends them.</div>`}
   `;
 }
+function openServiceInvoice(id){
+  const inv=(state.cache.serviceInvoices||[]).find(i=>i.id===id);
+  if(!inv || !["sent","paid"].includes(inv.status))return;
+  const rows=(inv.lineItems||[]).map(x=>`<tr><td style="padding:8px;border-bottom:1px solid #dce9e1;">${esc(x.description)}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #dce9e1;">${esc(x.quantity)}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #dce9e1;">${gmd(x.unitPrice)}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #dce9e1;">${gmd(x.total??Number(x.quantity)*Number(x.unitPrice))}</td></tr>`).join("");
+  showModal("EcoStream invoice "+esc(inv.invoiceNumber),`
+    <div id="invoice-print-area" style="background:#fff;color:#182d26;padding:22px;border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid #0b8c52;padding-bottom:14px;margin-bottom:18px;"><img src="/portal/assets/ecostream-logo.svg" alt="EcoStream logo" style="width:100px;height:90px;object-fit:contain;"><div style="text-align:right;"><div style="font-size:11px;letter-spacing:.16em;color:#07804d;font-weight:800;">ECOSTREAM LTD</div><h1 style="margin:5px 0;font-size:26px;">INVOICE</h1><b>${esc(inv.invoiceNumber)}</b><div style="font-size:11px;">Issued: ${fmtDate(inv.sentAt||inv.createdAt)}</div><div style="font-size:11px;">Due: ${fmtDate(inv.dueDate)}</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;"><div><b style="color:#07804d;">BILL TO</b><div>${esc(inv.clientName)}</div><div>${esc(inv.clientPhone||"")}</div><div>${esc(inv.clientAddress||"")}</div></div><div><b style="color:#07804d;">SERVICE LOCATION</b><div>${esc(({drilling:"Borehole Drilling","site-survey":"Site Survey",maintenance:"Borehole Maintenance",repair:"Borehole Repair","solar-installation":"Solar Water Installation","pump-service":"Water Pump Services",cleaning:"Borehole Cleaning","water-quality":"Water Quality Testing"})[inv.serviceType]||inv.serviceType)}</div><div>${esc(inv.serviceAddress)}</div></div></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eaf6ef;"><th style="padding:9px;text-align:left;">Description</th><th style="padding:9px;text-align:right;">Qty</th><th style="padding:9px;text-align:right;">Unit Price</th><th style="padding:9px;text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="margin:16px 0 16px auto;max-width:280px;font-size:13px;"><div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Subtotal</span><b>${gmd(inv.subtotal)}</b></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Discount</span><b>− ${gmd(inv.discount)}</b></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Tax</span><b>${gmd(inv.tax)}</b></div><div style="display:flex;justify-content:space-between;padding:9px 0;border-top:2px solid #0b8c52;font-size:17px;"><b>TOTAL (GMD)</b><b>${gmd(inv.total)}</b></div></div>
+      <div style="background:#f1f8f3;padding:12px;border-radius:8px;font-size:12px;margin-top:18px;"><b>Payment terms</b><div>${esc(inv.paymentTerms||"Please contact EcoStream to confirm payment terms.")}</div>${inv.serviceDate?`<div style="margin-top:6px;"><b>Service appointment:</b> ${fmtDate(inv.serviceDate)} ${esc(inv.serviceTime||"")} (${esc(inv.scheduleStatus||"")})</div>`:""}${inv.notes?`<div style="margin-top:8px;"><b>Notes:</b> ${esc(inv.notes)}</div>`:""}</div>
+      <div style="border-top:1px solid #c8ddd0;margin-top:22px;padding-top:12px;font-size:10px;color:#4b6559;line-height:1.7;">Royal Africa House, (Opposite Indian Farm), OIC Highway, Sukuta, The Gambia<br>Phone: +220 380 6666 · Email: contact@ecostream.africa · www.ecostream.africa<br>Mobile Money: WAVE/DAHA 3806666 · Bank: MEGA Bank · Account Name: EcoStream</div>
+    </div>
+    ${inv.scheduleStatus==="requested"?'<div class="field-hint" style="margin-top:12px;">Your appointment request is waiting for EcoStream to confirm.</div>':`<form data-form="service-invoice-schedule" data-id="${inv.id}" style="margin-top:14px;"><b>Request a service appointment</b><div class="field"><label>Preferred date *</label><input type="date" name="serviceDate" min="${new Date().toISOString().slice(0,10)}" required></div><div class="field"><label>Preferred time *</label><select name="serviceTime" required><option value="">Choose a time</option><option>08:00 AM</option><option>10:00 AM</option><option>12:00 PM</option><option>02:00 PM</option><option>04:00 PM</option></select></div><div class="field"><label>Notes (optional)</label><textarea name="scheduleNotes" rows="2" placeholder="Tell us about your availability or site access"></textarea></div><button class="btn btn-outline btn-block" type="submit">Request appointment</button></form>`}
+  `,`<button class="btn btn-outline" data-action="close-modal">Close</button><button class="btn btn-primary" data-action="print-invoice">⬇ Download / Print PDF</button>`);
+}
+
 function openInvoice(id){
   const inv = (state.cache.invoices||[]).find(i=>i.id===id);
   if(!inv) return;
@@ -1511,7 +1555,7 @@ document.addEventListener("click", async (e)=>{
     return;
   }
   if(action==="open-project"){ openProjectDetail(t.dataset.id); return; }
-  if(action==="view-invoice"){ openInvoice(t.dataset.id); return; }
+  if(action==="view-invoice"){ openInvoice(t.dataset.id); return; }\n  if(action==="view-service-invoice"){ openServiceInvoice(t.dataset.id); return; }
   if(action==="print-invoice"){ window.print(); return; }
   if(action==="open-ticket"){ openTicket(t.dataset.id); return; }
   if(action==="new-ticket"){ newTicketForm(); return; }
@@ -1616,6 +1660,10 @@ document.addEventListener("submit", async (e)=>{
       await api("/api/auth/reset-password", { method:"POST", body: JSON.stringify(data) });
       toast("PIN updated — please sign in.", "success");
       state.authMode = "login"; renderAuth();
+    }
+    else if(kind==="service-invoice-schedule"){
+      const result=await api("/api/service-invoices/"+form.dataset.id+"/schedule",{method:"PUT",body:JSON.stringify(data)});
+      toast(result.message||"Appointment request sent to EcoStream","success");closeModal();loadInvoices();
     }
     else if(kind==="booking"){
       const result = await api("/api/bookings", { method:"POST", body: JSON.stringify(data) });
