@@ -1153,7 +1153,7 @@ function invoicesHtml(invoices,serviceInvoices=[]){
     <div class="stat-card"><div class="num" style="color:var(--green);">${gmd(paid)}</div><div class="lbl">Total Paid</div></div>
     <div class="stat-card"><div class="num" style="color:${due>0?'var(--amber)':'inherit'};">${gmd(due)}</div><div class="lbl">Outstanding</div></div>
   </div>
-  ${!invoices.length ? `<div class="card empty"><div class="ic">🧾</div>No invoices yet.</div>` :
+  ${!invoices.length ? `<div class="card empty"><div class="ic">🧾</div>No payment receipts recorded yet.</div>` :
   `<div class="card card-pad">${invoices.map(i=>`
     <div class="list-item">
       <div class="avatar" style="background:${i.status==='paid'?'linear-gradient(135deg,var(--green),var(--green-dark))':'linear-gradient(135deg,var(--amber),#c9701d)'};">🧾</div>
