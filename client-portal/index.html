@@ -380,9 +380,31 @@ function esc(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<"
 function fmtDate(d){ if(!d) return "—"; try{ return new Date(d).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }catch{ return d; } }
 function fmtDateTime(d){ try{ return new Date(d).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch{ return d; } }
 function initials(name){ return (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(); }
+function defaultAvatarSvg(){
+  return `<svg viewBox="0 0 120 120" role="img" aria-label="EcoStream 3D avatar" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="avatar-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D8F5E5"/><stop offset="1" stop-color="#8DD7B1"/></linearGradient>
+      <linearGradient id="avatar-face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F8CDA8"/><stop offset="1" stop-color="#C98050"/></linearGradient>
+      <linearGradient id="avatar-shirt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#27B875"/><stop offset="1" stop-color="#075C36"/></linearGradient>
+      <linearGradient id="avatar-hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#35443B"/><stop offset="1" stop-color="#111B16"/></linearGradient>
+    </defs>
+    <circle cx="60" cy="60" r="60" fill="url(#avatar-bg)"/>
+    <ellipse cx="60" cy="111" rx="42" ry="26" fill="#0B8F4D" opacity=".12"/>
+    <path d="M20 120c3-23 18-35 40-35s37 12 40 35" fill="url(#avatar-shirt)"/>
+    <path d="M47 81h26v19c-7 8-19 8-26 0z" fill="url(#avatar-face)"/>
+    <ellipse cx="60" cy="53" rx="25" ry="30" fill="url(#avatar-face)"/>
+    <path d="M35 51c-2-21 10-36 28-35 17 1 25 13 23 31l-7-10c-11 2-25-3-32-11-2 11-6 18-12 25z" fill="url(#avatar-hair)"/>
+    <path d="M43 53c4-3 8-3 12 0M66 53c4-3 8-3 12 0" fill="none" stroke="#493024" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M57 65c2 2 5 2 7 0" fill="none" stroke="#8D4B32" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M48 73c7 6 17 6 24 0" fill="none" stroke="#8D4B32" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M48 89l12 12 12-12" fill="#fff" opacity=".92"/>
+    <path d="M54 99l6 8 6-8" fill="#1565C0"/>
+    <circle cx="95" cy="25" r="12" fill="#fff" opacity=".65"/><path d="M89 25l4 4 8-9" fill="none" stroke="#0B8F4D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
 function avatarMarkup(user, extraStyle=""){
   const avatarUrl=String(user?.avatarUrl||"");
-  return `<div class="avatar" style="${extraStyle}">${avatarUrl?`<img src="${esc(avatarUrl)}" alt="${esc(user?.name||"Profile photo")}" loading="lazy">`:esc(initials(user?.name))}</div>`;
+  return `<div class="avatar" style="${extraStyle}">${avatarUrl?`<img src="${esc(avatarUrl)}" alt="${esc(user?.name||"Profile photo")}" loading="lazy">`:defaultAvatarSvg()}</div>`;
 }
 // Returning-user storage may contain either the local 9-digit Gambian number
 // or the full +220 international number. Always send the local 9 digits to
@@ -802,8 +824,7 @@ function renderShell(innerHtml, title){
         <button class="hamburger" data-action="toggle-sidebar">☰</button>
         <h2>${title}</h2>
         <div class="spacer"></div>
-        <button class="icon-btn" data-action="toggle-theme" title="Toggle dark mode">${theme==="dark"?"☀️":"🌙"}</button>
-        <button class="icon-btn" data-action="nav" data-view="notifications" title="Notifications">🔔${state.cache.unreadCount?'<span class="dot"></span>':''}</button>
+        <button class="icon-btn" data-action="nav" data-view="notifications" title="Notifications" aria-label="Notifications">🔔${state.cache.unreadCount?'<span class="dot"></span>':''}</button>
         <button type="button" data-action="nav" data-view="profile" aria-label="Open profile" style="border:0;background:transparent;padding:0;">${avatarMarkup(state.user,"width:38px;height:38px;")}</button>
       </div>
       <div class="content view" id="view-root">${innerHtml}</div>
@@ -1230,7 +1251,7 @@ function profileHtml(){
   <div class="profile-layout">
     <section class="card card-pad">
       <div class="profile-identity">${avatar}<div style="min-width:0;flex:1;"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--green);margin-bottom:5px;">Your EcoStream account</div><h2 style="font-size:22px;line-height:1.2;margin:0 0 5px;overflow-wrap:anywhere;">${esc(state.user.name)}</h2><div style="font-size:13px;color:var(--text-muted);">${esc(state.user.phone||"No phone on file")}</div></div></div>
-      <div class="profile-card-actions"><button class="btn btn-primary" data-action="edit-profile">✏️ Edit profile</button><button class="btn btn-outline" data-action="upload-avatar">📷 Change photo</button></div>
+      <div class="profile-card-actions"><button class="btn btn-primary" data-action="edit-profile">✏️ Edit profile</button><button class="btn btn-outline" data-action="upload-avatar">📷 Change photo</button>${state.user.avatarUrl?'<button class="btn btn-outline" data-action="remove-avatar" style="color:var(--red);">🗑️ Remove photo</button>':''}</div>
       <input type="file" id="profile-avatar-file" accept="image/*" hidden>
       <div class="profile-info-grid"><div class="profile-info-item"><small>Full name</small><b>${esc(state.user.name||"Not set")}</b></div><div class="profile-info-item"><small>Phone number</small><b>${esc(state.user.phone||"Not set")}</b></div><div class="profile-info-item" style="grid-column:1/-1;"><small>Address / Location</small><b>${esc(state.user.address||"Add your address in Edit Profile")}</b></div></div>
       <div style="margin-top:16px;padding:14px;border-radius:14px;background:var(--sand);color:var(--text-muted);font-size:12px;line-height:1.5;">Your profile details help EcoStream contact you about drilling requests, project updates and payments.</div>
@@ -1321,6 +1342,18 @@ document.addEventListener("click", async (e)=>{
   if(action==="toggle-sidebar"){ const sidebar=document.getElementById("sidebar"); const opening=!sidebar?.classList.contains("open"); sidebar?.classList.toggle("open",opening); document.querySelector(".sidebar-scrim")?.classList.toggle("show",opening); return; }
   if(action==="close-sidebar"){ document.getElementById("sidebar")?.classList.remove("open"); document.querySelector(".sidebar-scrim")?.classList.remove("show"); return; }
   if(action==="upload-avatar"){ document.getElementById("profile-avatar-file")?.click(); return; }
+  if(action==="remove-avatar"){
+    if(!state.user.avatarUrl) return;
+    if(!confirm("Remove your profile photo and use the default EcoStream avatar?")) return;
+    try{
+      const result=await api("/api/auth/profile",{method:"PUT",body:JSON.stringify({avatarUrl:""})});
+      state.user={...state.user,...(result.user||{}),avatarUrl:""};
+      localStorage.setItem("eco_user",JSON.stringify(state.user));
+      toast("Profile photo removed. Your default EcoStream avatar is now showing.","success");
+      loadProfile();
+    }catch(err){toast(err.message||"Could not remove your profile photo. Please try again.","error");}
+    return;
+  }
   if(action==="close-modal"){ closeModal(); return; }
   if(action==="reload"){ render(); return; }
 
