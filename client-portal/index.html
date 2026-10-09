@@ -1496,7 +1496,10 @@ document.addEventListener("click", async (e)=>{
     const form=document.getElementById("booking-service-form");
     const retained={};
     if(form){
-      new FormData(form).forEach((value,key)=>{if(key!=="requestType")retained[key]=value;});
+      ["drillingLocation","latitude","longitude","gpsAccuracy","latitudeDisplay","longitudeDisplay","locationAddress","preferredContactTime","contactPreference"].forEach(key=>{
+        const field=form.elements.namedItem(key);
+        if(field)retained[key]=field.value;
+      });
     }
     renderShell(bookHtml(nextType),"Book Water Services");
     const newForm=document.getElementById("booking-service-form");
