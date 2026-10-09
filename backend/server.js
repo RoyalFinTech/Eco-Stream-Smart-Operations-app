@@ -33,6 +33,7 @@ require("./routes/clients").register(router);
 require("./routes/projects").register(router);
 require("./routes/bookings").register(router);
 require("./routes/payments").register(router);
+require("./routes/serviceInvoices").register(router);
 require("./routes/notifications").register(router);
 require("./routes/tickets").register(router);
 require("./routes/staff").register(router);
