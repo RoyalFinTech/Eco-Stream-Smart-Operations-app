@@ -327,6 +327,24 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 .booking-step{padding:10px;border-radius:13px;background:var(--card);border:1px solid var(--border);font-size:10px;font-weight:800;color:var(--text-muted);}
 .booking-step.active{background:#E8F7F0;border-color:#A7E8C7;color:var(--green-dark);}
 .booking-card{background:var(--card);border:1px solid var(--border);border-radius:21px;padding:20px;box-shadow:var(--shadow-soft);}
+.booking-service-intro{margin:0 0 14px;color:var(--text-muted);font-size:12px;line-height:1.6;}
+.booking-services{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 20px;}
+.booking-service{display:flex;align-items:flex-start;gap:11px;text-align:left;width:100%;min-width:0;padding:13px 11px;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);cursor:pointer;transition:border-color .16s,background .16s,transform .16s;min-height:96px;}
+.booking-service:active{transform:scale(.985);}
+.booking-service.active{border-color:#0B8F4D;background:linear-gradient(135deg,#E9F9F0,#F8FFFB);box-shadow:0 5px 16px rgba(11,143,77,.10);}
+.booking-service-icon{display:grid;place-items:center;flex:0 0 37px;width:37px;height:37px;border-radius:12px;background:linear-gradient(145deg,#0B9C5A,#076A3C);color:#fff;font-size:19px;}
+.booking-service.active .booking-service-icon{box-shadow:0 4px 10px rgba(11,143,77,.22);}
+.booking-service-copy{min-width:0;flex:1;}
+.booking-service-title{display:block;font-size:12px;font-weight:850;line-height:1.35;}
+.booking-service-description{display:block;margin-top:5px;font-size:10px;line-height:1.45;color:var(--text-muted);}
+.booking-service-check{display:none;color:#0B8F4D;font-weight:900;font-size:12px;}
+.booking-service.active .booking-service-check{display:block;}
+.booking-form-section{border-top:1px solid var(--border);padding-top:18px;margin-top:10px;}
+.booking-selected-service{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:12px;border-radius:14px;background:var(--surface-muted, #F3F8F5);}
+.booking-selected-service strong{display:block;font-size:13px;}
+.booking-selected-service span{display:block;margin-top:3px;color:var(--text-muted);font-size:11px;line-height:1.4;}
+.booking-fields-heading{font-size:13px;font-weight:850;margin:0 0 12px;}
+@media(max-width:420px){.booking-services{gap:8px}.booking-service{padding:11px 9px;gap:8px;min-height:100px}.booking-service-icon{width:32px;height:32px;flex-basis:32px;font-size:17px}.booking-service-title{font-size:11px}.booking-service-description{font-size:9.5px}.booking-card{padding:15px}}
 .location-card{position:relative;overflow:hidden;border:1px solid rgba(16,145,83,.22);background:linear-gradient(135deg,#effcf5 0%,#ffffff 54%,#e0f8eb 100%);border-radius:20px;padding:16px;margin:14px 0 18px;box-shadow:0 10px 26px rgba(10,115,67,.07);}
 .location-card:before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,#20b66c,#087342);border-radius:20px 0 0 20px;}
 .location-card-head{display:flex;align-items:flex-start;gap:12px;}
@@ -931,68 +949,132 @@ function dashboardHtml(summary, projects){
    VIEW: BOOK DRILLING / SITE SURVEY
    ============================================================ */
 function loadBook(){
-  renderShell(bookHtml(), "Book Drilling / Site Survey");
+  renderShell(bookHtml(), "Book Water Services");
 }
-function bookHtml(){
+const BOOKING_SERVICES = {
+  drilling:{title:"Borehole Drilling",icon:"💧",description:"A new borehole planned around your water needs.",intro:"Tell us where you need a borehole and how you plan to use the water."},
+  "site-survey":{title:"Site Survey",icon:"📐",description:"Assess your site before work begins.",intro:"Request a site assessment so our team can understand the land, access and project requirements."},
+  maintenance:{title:"Borehole Maintenance",icon:"🛠️",description:"Routine servicing and performance checks.",intro:"Tell us about the borehole and the maintenance it needs."},
+  repair:{title:"Borehole Repair",icon:"🔧",description:"Help with breakdowns and water-flow problems.",intro:"Describe the problem so our team can plan the right inspection."},
+  "solar-installation":{title:"Solar Water Installation",icon:"☀️",description:"Solar-powered pumping and water solutions.",intro:"Share your site and power needs for a solar water solution."},
+  "pump-service":{title:"Water Pump Services",icon:"⚙️",description:"Pump installation, repair and servicing.",intro:"Tell us what kind of pump you have and what support you need."},
+  cleaning:{title:"Borehole Cleaning",icon:"🫧",description:"Cleaning and disinfection enquiries.",intro:"Let us know the source and the reason for cleaning."},
+  "water-quality":{title:"Water Quality Testing",icon:"💧",description:"Request water testing and quality guidance.",intro:"Choose the testing you need and tell us about the water source."}
+};
+function bookingServiceFields(type){
+  const select=(name,label,options,required=true)=>`<div class="field"><label>${label}${required?" *":""}</label><select name="${name}" ${required?"required":""}><option value="">Choose an option</option>${options.map(([v,t])=>`<option value="${v}">${t}</option>`).join("")}</select></div>`;
+  const input=(name,label,placeholder,required=false)=>`<div class="field"><label>${label}${required?" *":""}</label><input name="${name}" placeholder="${placeholder}" ${required?"required":""}></div>`;
+  const textarea=(name,label,placeholder,required=false)=>`<div class="field"><label>${label}${required?" *":""}</label><textarea name="${name}" rows="3" placeholder="${placeholder}" ${required?"required":""}></textarea></div>`;
+  const grid=(...fields)=>`<div class="grid grid-2">${fields.join("")}</div>`;
+  const provider=()=>select("boreholeProvider","Who installed / drilled this borehole?",[["ecostream","EcoStream"],["third-party","Another company / contractor"],["private","Private / unknown provider"]]);
+  const notes=()=>textarea("siteNotes","Additional details (optional)","Share anything else that could help our team prepare.");
+  if(type==="drilling") return `
+    <h3 class="booking-fields-heading">Drilling requirements</h3>
+    ${grid(select("package","Service package",[["standard","Standard Borehole"],["solar","Solar-Powered Water Solution"],["premium","Premium / Commercial"]]),select("areaType","Site type",[["residential","Home / Residential"],["commercial","Business / Commercial"],["agricultural","Farm / Agricultural"]]))}
+    ${grid(select("purpose","Main water use",[["drinking","Drinking water"],["irrigation","Irrigation"],["livestock","Livestock"],["general","General use"]]),select("waterRequirement","Expected water demand",[["household","Household"],["small-business","Small business"],["farm","Farm / irrigation"],["large-commercial","Large / commercial"]],false))}
+    ${grid(select("paymentPlan","Preferred payment plan",[["full","Pay in full"],["installment","Ask about instalments"]]),select("preferredContactTime","Best time to contact you",[["morning","Morning"],["afternoon","Afternoon"],["evening","Evening"]],false))}
+    ${notes()}`;
+  if(type==="site-survey") return `
+    <h3 class="booking-fields-heading">Site survey details</h3>
+    ${grid(select("surveyPurpose","What should we assess?",[["new-borehole","Proposed new borehole"],["site-feasibility","Site suitability / feasibility"],["solar-pump","Solar pump placement"],["repair-assessment","Existing borehole assessment"],["other","Other site assessment"]]),select("areaType","Site type",[["residential","Home / Residential"],["commercial","Business / Commercial"],["agricultural","Farm / Agricultural"]]))}
+    ${grid(select("siteAccess","Site access",[["easy","Easy vehicle access"],["limited","Limited / narrow access"],["difficult","Difficult access"],["unknown","Not sure"]],false),select("preferredContactTime","Best time to contact you",[["morning","Morning"],["afternoon","Afternoon"],["evening","Evening"]],false))}
+    ${notes()}`;
+  if(type==="maintenance") return `
+    <h3 class="booking-fields-heading">Maintenance details</h3>
+    ${provider()}
+    ${grid(select("maintenanceType","Maintenance needed",[["routine","Routine servicing"],["low-yield","Low water yield / flow"],["pump-check","Pump inspection"],["electrical","Electrical / controller check"],["preventive","Preventive maintenance"],["unsure","Not sure — please assess"]]),input("lastMaintenanceDate","Last serviced (if known)","e.g. March 2025"))}
+    ${textarea("issueDescription","What have you noticed?","Describe the condition, sounds, water flow or any warning signs.",true)}
+    ${notes()}`;
+  if(type==="repair") return `
+    <h3 class="booking-fields-heading">Repair details</h3>
+    ${provider()}
+    ${grid(select("repairIssue","What needs repair?",[["pump-failure","Pump not working"],["no-water","No water coming out"],["low-pressure","Low pressure / weak flow"],["pipe-leak","Pipe leak / damaged pipe"],["electrical-fault","Electrical / control fault"],["borehole-damage","Borehole or casing damage"],["other","Other / not sure"]]),select("waterStatus","Current water supply",[["none","No water at all"],["reduced","Reduced water flow"],["intermittent","Comes and goes"],["normal","Water available, but another fault"]]))}
+    ${grid(select("urgency","How urgent is it?",[["urgent","Urgent — essential water supply affected"],["soon","Needs attention soon"],["routine","Routine repair / inspection"]]),input("lastMaintenanceDate","Last serviced (if known)","e.g. March 2025"))}
+    ${textarea("issueDescription","Describe the problem *","When did it start? What happens when you switch it on?",true)}
+    ${notes()}`;
+  if(type==="solar-installation") return `
+    <h3 class="booking-fields-heading">Solar water installation</h3>
+    ${grid(select("solarService","What do you need?",[["new-system","New solar water pumping system"],["convert","Convert existing pump to solar"],["expand","Upgrade an existing solar system"],["assessment","Solar site assessment"]]),select("areaType","Site type",[["residential","Home / Residential"],["commercial","Business / Commercial"],["agricultural","Farm / Agricultural"]]))}
+    ${grid(select("existingPower","Current power setup",[["none","No existing system"],["grid","Grid electricity"],["generator","Generator"],["solar","Existing solar system"],["mixed","Mixed / other"]],false),select("waterRequirement","Expected water demand",[["household","Household"],["small-business","Small business"],["farm","Farm / irrigation"],["large-commercial","Large / commercial"]]))}
+    ${notes()}`;
+  if(type==="pump-service") return `
+    <h3 class="booking-fields-heading">Water pump service details</h3>
+    ${grid(select("pumpType","Pump type",[["submersible","Submersible borehole pump"],["surface","Surface pump"],["solar","Solar pump"],["pressure","Booster / pressure pump"],["unknown","Not sure"]]),select("pumpServiceType","Service required",[["installation","Install a pump"],["repair","Repair a pump"],["maintenance","Service / maintain a pump"],["replacement","Replace an existing pump"],["inspection","Diagnose a pump problem"]]))}
+    ${grid(select("waterStatus","Current water supply",[["none","No water"],["reduced","Low flow"],["intermittent","Intermittent"],["normal","Water available"]]),select("urgency","Priority",[["urgent","Urgent"],["soon","Within a few days"],["routine","Routine"]]))}
+    ${textarea("issueDescription","Pump issue or requirements (optional)","Brand/model if known, symptoms or installation needs.")}
+    ${notes()}`;
+  if(type==="cleaning") return `
+    <h3 class="booking-fields-heading">Cleaning and disinfection</h3>
+    ${provider()}
+    ${grid(select("cleaningReason","Reason for cleaning",[["routine","Routine cleaning"],["taste-smell","Unusual taste or smell"],["sediment","Sand / sediment"],["after-repair","After repairs"],["contamination-concern","Possible contamination concern"],["other","Other"]]),input("lastCleanedDate","Last cleaned (if known)","e.g. 2024"))}
+    ${textarea("issueDescription","Anything unusual? (optional)","Describe changes in colour, smell, taste or sediment.")}
+    ${notes()}`;
+  return `
+    <h3 class="booking-fields-heading">Water quality testing</h3>
+    ${grid(select("waterSource","Water source",[["borehole","Borehole"],["well","Traditional well"],["tap","Tap / treated supply"],["storage","Stored water"],["other","Other"]]),select("testTypes","Testing required",[["basic","Basic quality screening"],["microbial","Microbiological testing enquiry"],["chemical","Chemical / mineral testing enquiry"],["full","Comprehensive testing enquiry"],["unsure","Not sure — advise me"]]))}
+    ${textarea("issueDescription","Reason for testing (optional)","For example, unusual colour, taste, smell or routine safety checks.")}
+    ${notes()}`;
+}
+function bookingServiceCards(active){
+  return Object.entries(BOOKING_SERVICES).map(([key,svc])=>`
+    <button type="button" class="booking-service ${key===active?"active":""}" data-action="book-type" data-type="${key}" aria-pressed="${key===active}">
+      <span class="booking-service-icon" aria-hidden="true">${svc.icon}</span>
+      <span class="booking-service-copy"><span class="booking-service-title">${svc.title}</span><span class="booking-service-description">${svc.description}</span></span>
+      <span class="booking-service-check" aria-hidden="true">✓</span>
+    </button>`).join("");
+}
+function bookHtml(active="drilling"){
+  const svc=BOOKING_SERVICES[active]||BOOKING_SERVICES.drilling;
   return `
   <div class="booking-shell">
     <section class="booking-hero">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#A7F3D0;">EcoStream Service Application</div>
-      <h1>Book your borehole</h1>
-      <p>Give our field team the location and requirements they need to plan your water solution.</p>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.15em;font-weight:800;color:#A7F3D0;">EcoStream Service Centre</div>
+      <h1>How can we help?</h1>
+      <p>Choose the service you need. We’ll ask only for the details that help our team respond and plan the next step.</p>
     </section>
-    <div class="booking-stepper">
-      <div class="booking-step active">01 · Location</div><div class="booking-step">02 · Service</div><div class="booking-step">03 · Details</div><div class="booking-step">04 · Review</div>
-    </div>
     <div class="booking-card">
-      <div class="chip-row" style="margin-bottom:18px;display:flex;gap:8px;">
-        <button class="chip active" data-action="book-type" data-type="drilling" id="chip-drilling">💧 Borehole Drilling</button>
-        <button class="chip" data-action="book-type" data-type="site-survey" id="chip-survey">📐 Site Survey</button>
-      </div>
-      <form data-form="booking">
-        <input type="hidden" name="requestType" value="drilling" id="requestTypeInput">
-        <div class="field"><label>Project / Site Location *</label><input name="drillingLocation" required placeholder="e.g. Brikama, Kombo South"></div>
-        <section class="location-card" aria-label="Optional precise site location">
-          <div class="location-card-head">
-            <div class="location-card-icon" aria-hidden="true">⌖</div>
-            <div class="location-card-copy">
-              <div class="location-card-title">Help us pinpoint your site</div>
-              <div class="location-card-subtitle">Share GPS coordinates or a nearby landmark if you have them. You can submit your booking without these details.</div>
+      <p class="booking-service-intro">Select a service to open its own short booking form. Your request will be sent to the EcoStream team for follow-up.</p>
+      <div class="booking-services" aria-label="Available EcoStream services">${bookingServiceCards(active)}</div>
+      <form data-form="booking" id="booking-service-form">
+        <input type="hidden" name="requestType" value="${active}" id="requestTypeInput">
+        <div class="booking-form-section">
+          <div class="booking-selected-service"><span class="booking-service-icon" aria-hidden="true">${svc.icon}</span><div><strong>${svc.title}</strong><span>${svc.intro}</span></div></div>
+          <div class="field"><label>Project / Site Address or Location *</label><input name="drillingLocation" required maxlength="250" placeholder="e.g. Brikama, Kombo South — nearest landmark or compound"></div>
+          <section class="location-card" aria-label="Optional precise site location">
+            <div class="location-card-head">
+              <div class="location-card-icon" aria-hidden="true">⌖</div>
+              <div class="location-card-copy">
+                <div class="location-card-title">Help us pinpoint your site</div>
+                <div class="location-card-subtitle">GPS coordinates are optional. You can submit your request without them and add a nearby landmark above.</div>
+              </div>
+              <span class="location-optional">OPTIONAL</span>
             </div>
-            <span class="location-optional">OPTIONAL</span>
+            <button type="button" class="location-toggle" data-action="toggle-location-details" aria-expanded="false" aria-controls="booking-location-details">
+              <span>＋ Add precise location</span><span aria-hidden="true">⌄</span>
+            </button>
+            <div class="location-details" id="booking-location-details" hidden>
+              <div class="location-actions">
+                <button type="button" class="btn btn-outline btn-sm" data-action="get-location">📡 Use Current Location</button>
+                <span id="gps-status" style="font-size:11px;color:var(--text-muted);align-self:center;">No GPS coordinates added — that's okay</span>
+              </div>
+              <input type="hidden" name="latitude" id="booking-latitude">
+              <input type="hidden" name="longitude" id="booking-longitude">
+              <input type="hidden" name="gpsAccuracy" id="booking-gps-accuracy">
+              <div class="grid grid-2">
+                <div class="field"><label>Latitude (optional)</label><input name="latitudeDisplay" id="booking-latitude-display" inputmode="decimal" placeholder="e.g. 13.45"></div>
+                <div class="field"><label>Longitude (optional)</label><input name="longitudeDisplay" id="booking-longitude-display" inputmode="decimal" placeholder="e.g. -16.68"></div>
+              </div>
+              <div class="field" style="margin-bottom:0;"><label>Nearby landmark (optional)</label><input name="locationAddress" maxlength="250" placeholder="Nearest landmark, compound or village"></div>
+            </div>
+          </section>
+          <div id="booking-service-fields">${bookingServiceFields(active)}</div>
+          <div class="grid grid-2">
+            <div class="field"><label>Best time to contact you</label><select name="preferredContactTime"><option value="">Any time</option><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option></select></div>
+            <div class="field"><label>Preferred contact method</label><select name="contactPreference"><option value="phone">Phone call</option><option value="whatsapp">WhatsApp</option><option value="either">Either is fine</option></select></div>
           </div>
-          <button type="button" class="location-toggle" data-action="toggle-location-details" aria-expanded="false" aria-controls="booking-location-details">
-            <span>＋ Add precise location</span><span aria-hidden="true">⌄</span>
-          </button>
-          <div class="location-details" id="booking-location-details" hidden>
-            <div class="location-actions">
-              <button type="button" class="btn btn-outline btn-sm" data-action="get-location">📡 Use Current Location</button>
-              <span id="gps-status" style="font-size:11px;color:var(--text-muted);align-self:center;">No location added — that's okay</span>
-            </div>
-            <input type="hidden" name="latitude" id="booking-latitude">
-            <input type="hidden" name="longitude" id="booking-longitude">
-            <input type="hidden" name="gpsAccuracy" id="booking-gps-accuracy">
-            <div class="grid grid-2">
-              <div class="field"><label>Latitude (optional)</label><input name="latitudeDisplay" id="booking-latitude-display" inputmode="decimal" placeholder="e.g. 13.45"></div>
-              <div class="field"><label>Longitude (optional)</label><input name="longitudeDisplay" id="booking-longitude-display" inputmode="decimal" placeholder="e.g. -16.68"></div>
-            </div>
-            <div class="field" style="margin-bottom:0;"><label>Address / Landmark (optional)</label><input name="locationAddress" placeholder="Nearest landmark, compound or village"></div>
-          </div>
-        </section>
-        <div class="grid grid-2">
-          <div class="field"><label>Service Package</label><select name="package"><option value="standard">Standard Borehole</option><option value="solar">Solar-Powered Water Solution</option><option value="premium">Premium / Commercial</option></select></div>
-          <div class="field"><label>Area Type</label><select name="areaType"><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="agricultural">Agricultural</option></select></div>
+          <p style="font-size:11px;line-height:1.55;color:var(--text-muted);margin:12px 0;">Your request is for an assessment and follow-up. Our team will confirm the scope, availability and any costs with you before work is arranged.</p>
+          <button class="btn btn-primary btn-block" type="submit">Send ${svc.title} Request →</button>
         </div>
-        <div class="grid grid-2">
-          <div class="field"><label>Primary Water Use</label><select name="purpose"><option value="drinking">Drinking Water</option><option value="irrigation">Irrigation</option><option value="livestock">Livestock</option><option value="general">General Use</option></select></div>
-          <div class="field"><label>Estimated Water Requirement</label><select name="waterRequirement"><option value="">Select requirement</option><option value="household">Household</option><option value="small-business">Small Business</option><option value="farm">Farm / Irrigation</option><option value="large-commercial">Large / Commercial</option></select></div>
-        </div>
-        <div class="grid grid-2">
-          <div class="field"><label>Payment Plan</label><select name="paymentPlan"><option value="full">Pay in Full</option><option value="installment">Installment</option></select></div>
-          <div class="field"><label>Preferred Contact Time</label><select name="preferredContactTime"><option value="">Any time</option><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option></select></div>
-        </div>
-        <div class="field"><label>Additional Site Information</label><textarea name="siteNotes" rows="4" placeholder="Access roads, existing water source, land conditions, special requirements..."></textarea></div>
-        <button class="btn btn-primary btn-block" type="submit">Submit Borehole Application →</button>
       </form>
     </div>
   </div>`;
@@ -1409,9 +1491,20 @@ document.addEventListener("click", async (e)=>{
     return;
   }
   if(action==="book-type"){
-    document.querySelectorAll(".chip-row .chip").forEach(c=>c.classList.remove("active"));
-    t.classList.add("active");
-    document.getElementById("requestTypeInput").value = t.dataset.type;
+    const nextType=t.dataset.type;
+    if(!BOOKING_SERVICES[nextType]) return;
+    const form=document.getElementById("booking-service-form");
+    const retained={};
+    if(form){
+      new FormData(form).forEach((value,key)=>{if(key!=="requestType")retained[key]=value;});
+    }
+    renderShell(bookHtml(nextType),"Book Water Services");
+    const newForm=document.getElementById("booking-service-form");
+    if(newForm){
+      Object.entries(retained).forEach(([key,value])=>{const field=newForm.elements.namedItem(key);if(field&&typeof value==="string")field.value=value;});
+      const lat=newForm.elements.namedItem("latitude"),lng=newForm.elements.namedItem("longitude");
+      if(lat&&lng&&lat.value&&lng.value){const details=document.getElementById("booking-location-details");const toggle=document.querySelector('[data-action="toggle-location-details"]');if(details)details.hidden=false;if(toggle){toggle.setAttribute("aria-expanded","true");toggle.innerHTML="<span>− Hide location details</span><span aria-hidden=\"true\">⌃</span>";}}
+    }
     return;
   }
   if(action==="open-project"){ openProjectDetail(t.dataset.id); return; }
