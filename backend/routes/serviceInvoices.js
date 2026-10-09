@@ -167,7 +167,7 @@ function register(router) {
       });
     } else {
       updated = await db.collection("service_invoices").updateById(current.id, {
-        serviceDate, serviceTime, scheduleStatus:"requested",
+        serviceDate, serviceTime, scheduleStatus,
         scheduleNotes:clean(req.body?.scheduleNotes,1000), updatedAt:now
       });
     }
