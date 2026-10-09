@@ -482,6 +482,7 @@ const NAV = [
   ["equipment","🚜","Equipment"],
   ["FINANCE", null],
   ["finance","💰","Finance & Reports"],
+  ["service-invoices","🧾","Service Invoices"],
   ["ENGAGEMENT", null],
   ["tickets","🎫","Support Tickets"],
   ["chat","💬","Client Chat"],
@@ -736,6 +737,70 @@ function projectsHtml(tab){
   )}
   </div>`;
 }
+
+/* ============================================================
+   SERVICE INVOICE WORKFLOW — booking → reviewed draft → client
+   ============================================================ */
+async function loadServiceInvoices(){
+  renderShell(loadingSkeleton(), "Service Invoices");
+  try{
+    const [{invoices},{bookings},{clients}] = await Promise.all([api("/api/service-invoices"),api("/api/bookings"),api("/api/clients")]);
+    state.cache.serviceInvoices=invoices; state.cache.bookings=bookings; state.cache.clients=clients;
+    renderShell(serviceInvoicesHtml(invoices,bookings,clients), "Service Invoices");
+  }catch(e){ renderShell(errorState("Couldn't load service invoices. Check the backend deployment and Supabase schema."), "Service Invoices"); }
+}
+const SERVICE_TITLES = {drilling:"Borehole Drilling","site-survey":"Site Survey",maintenance:"Borehole Maintenance",repair:"Borehole Repair","solar-installation":"Solar Water Installation","pump-service":"Water Pump Services",cleaning:"Borehole Cleaning","water-quality":"Water Quality Testing"};
+function serviceInvoicesHtml(invoices,bookings,clients){
+  const clientName=id=>(clients.find(c=>c.id===id)||{}).name||"Customer";
+  const readyBookings=bookings.filter(b=>!["rejected"].includes(b.status));
+  return `
+    <section class="admin-hero"><div class="eyebrow">EcoStream Finance</div><h1>Service invoices</h1><p>Prepare a draft from a customer booking, confirm every price yourself, then send the approved invoice to the customer's portal.</p></section>
+    <div class="card card-pad" style="margin-bottom:18px;"><div class="row-between"><div><b>Bookings awaiting an invoice</b><div class="field-hint">AI-style assistance is limited to organising service details. It does not invent prices or approve invoices.</div></div><span class="badge badge-amber">${readyBookings.length} bookings</span></div>
+      ${readyBookings.length?readyBookings.map(b=>`<div class="list-item" style="align-items:flex-start;"><div class="avatar">${({"drilling":"💧","site-survey":"📐",maintenance:"🛠️",repair:"🔧","solar-installation":"☀️","pump-service":"⚙️",cleaning:"🫧","water-quality":"🧪"})[b.requestType]||"🧾"}</div><div style="flex:1;min-width:0;"><b>${esc(clientName(b.clientId))}</b><div style="font-size:12px;color:var(--green-dark);font-weight:800;margin:3px 0;">${esc(SERVICE_TITLES[b.requestType]||b.requestType)}</div><div style="font-size:12px;color:var(--text-muted);">${esc(b.drillingLocation)} · ${fmtDate(b.submittedAt)}</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${esc((b.siteNotes||"").slice(0,260))}</div></div><button class="btn btn-primary btn-sm" data-action="prepare-service-invoice" data-id="${b.id}">Prepare draft</button></div>`).join(""):`<div class="empty" style="padding:18px;">No bookings to review right now.</div>`}
+    </div>
+    <div class="row-between" style="margin-bottom:12px;"><h3>Invoice register</h3><span class="field-hint">Drafts are private to staff until sent.</span></div>
+    ${!invoices.length?`<div class="card empty"><div class="ic">🧾</div>No service invoices yet. Prepare a draft from a booking above.</div>`:`<div class="card"><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer / Service</th><th>Amount</th><th>Status</th><th>Schedule</th><th>Actions</th></tr></thead><tbody>${invoices.map(i=>`<tr><td><b>${esc(i.invoiceNumber)}</b><div style="font-size:11px;color:var(--text-muted);">${fmtDate(i.createdAt)}</div></td><td>${esc(i.clientName)}<div style="font-size:11px;color:var(--green-dark);">${esc(SERVICE_TITLES[i.serviceType]||i.serviceType)}</div><div style="font-size:11px;color:var(--text-muted);">${esc(i.serviceAddress||"")}</div></td><td><b>${gmd(i.total||0)}</b></td><td>${statusBadge(i.status)}</td><td><div style="font-size:12px;">${esc(i.scheduleStatus||"not-requested")}</div>${i.serviceDate?fmtDate(i.serviceDate)+" "+esc(i.serviceTime||""):"—"}</td><td><div style="display:flex;gap:5px;flex-wrap:wrap;">${["draft","approved"].includes(i.status)?`<button class="btn btn-outline btn-sm" data-action="edit-service-invoice" data-id="${i.id}">Review / Edit</button><button class="btn btn-primary btn-sm" data-action="send-service-invoice" data-id="${i.id}">Approve & Send</button>`: `<button class="btn btn-outline btn-sm" data-action="view-service-invoice-admin" data-id="${i.id}">View</button>`}</div></td></tr>`).join("")}</tbody></table></div></div>`}
+  `;
+}
+function serviceInvoiceEditor(inv){
+  const lines=(inv.lineItems||[]).map(x=>[x.description,x.quantity,x.unitPrice].join(" | ")).join("\n");
+  showModal("Review EcoStream invoice draft",`
+    <div style="background:linear-gradient(120deg,#062c2b,#087f50);color:#fff;padding:16px;border-radius:14px;margin-bottom:16px;"><div style="font-size:10px;letter-spacing:.14em;font-weight:800;color:#a7f3d0;">ECOSTREAM FINANCE</div><b style="font-size:21px;">${esc(inv.invoiceNumber)}</b><div style="font-size:12px;color:#d1fae5;margin-top:4px;">Review all information and enter actual agreed prices before sending.</div></div>
+    <form data-form="service-invoice-edit" data-id="${inv.id}">
+      <div class="grid grid-2">
+        <div class="field"><label>Customer name *</label><input name="clientName" value="${esc(inv.clientName||"")}" required></div>
+        <div class="field"><label>Customer phone</label><input name="clientPhone" value="${esc(inv.clientPhone||"")}"></div>
+        <div class="field"><label>Customer address</label><input name="clientAddress" value="${esc(inv.clientAddress||"")}"></div>
+        <div class="field"><label>Service address *</label><input name="serviceAddress" value="${esc(inv.serviceAddress||"")}" required></div>
+        <div class="field"><label>Due date</label><input type="date" name="dueDate" value="${esc(inv.dueDate||"")}"></div>
+        <div class="field"><label>Proposed service date</label><input type="date" name="serviceDate" value="${esc(inv.serviceDate||"")}"></div>
+        <div class="field"><label>Proposed time</label><input name="serviceTime" value="${esc(inv.serviceTime||"")}" placeholder="e.g. 10:00 AM"></div>
+        <div class="field"><label>Discount (GMD)</label><input type="number" name="discount" min="0" step="0.01" value="${Number(inv.discount||0)}"></div>
+        <div class="field"><label>Tax (GMD, if applicable)</label><input type="number" name="tax" min="0" step="0.01" value="${Number(inv.tax||0)}"></div>
+      </div>
+      <div class="field"><label>Itemised service lines *</label><div class="field-hint">One line per item in this format: Description | Quantity | Unit price in GMD. Replace every 0 with an agreed price or remove services the customer does not need.</div><textarea name="lineItemsText" rows="7" required style="font-family:monospace;">${esc(lines)}</textarea></div>
+      <div class="field"><label>Payment terms</label><input name="paymentTerms" value="${esc(inv.paymentTerms||"")}"></div>
+      <div class="field"><label>Scheduling notes</label><input name="scheduleNotes" value="${esc(inv.scheduleNotes||"")}" placeholder="Customer availability / visit details"></div>
+      <div class="field"><label>Notes / scope of work</label><textarea name="notes" rows="3">${esc(inv.notes||"")}</textarea></div>
+      <div style="background:#f0fdf4;border-radius:12px;padding:12px;font-size:12px;color:#14532d;margin-bottom:12px;">Totals are calculated by the backend. Saving keeps this as a draft; the customer will not see it until you approve and send.</div>
+      <button class="btn btn-primary btn-block" type="submit">Save reviewed draft</button>
+    </form>
+  `,`<button class="btn btn-outline" data-action="close-modal">Cancel</button>`);
+}
+function serviceInvoicePreview(inv){
+  const rows=(inv.lineItems||[]).map(x=>`<tr><td>${esc(x.description)}</td><td style="text-align:right;">${esc(x.quantity)}</td><td style="text-align:right;">${gmd(x.unitPrice)}</td><td style="text-align:right;">${gmd(x.total??Number(x.quantity)*Number(x.unitPrice))}</td></tr>`).join("");
+  showModal("EcoStream invoice "+esc(inv.invoiceNumber),`
+    <div id="invoice-print-area" style="background:#fff;color:#182d26;padding:22px;border-radius:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #0b8c52;padding-bottom:14px;margin-bottom:18px;"><img src="assets/ecostream-logo.svg" alt="EcoStream logo" style="width:100px;height:90px;object-fit:contain;"><div style="text-align:right;"><div style="font-size:11px;letter-spacing:.16em;color:#07804d;font-weight:800;">ECOSTREAM LTD</div><h1 style="margin:5px 0;font-size:26px;">INVOICE</h1><b>${esc(inv.invoiceNumber)}</b><div style="font-size:11px;">Issued: ${fmtDate(inv.sentAt||inv.createdAt)}</div><div style="font-size:11px;">Due: ${fmtDate(inv.dueDate)}</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;"><div><b style="color:#07804d;">BILL TO</b><div>${esc(inv.clientName)}</div><div>${esc(inv.clientPhone||"")}</div><div>${esc(inv.clientAddress||"")}</div></div><div><b style="color:#07804d;">SERVICE LOCATION</b><div>${esc(SERVICE_TITLES[inv.serviceType]||inv.serviceType)}</div><div>${esc(inv.serviceAddress)}</div></div></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#eaf6ef;"><th style="padding:9px;text-align:left;">Description</th><th style="padding:9px;text-align:right;">Qty</th><th style="padding:9px;text-align:right;">Unit Price</th><th style="padding:9px;text-align:right;">Total</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="margin:16px 0 16px auto;max-width:280px;font-size:13px;"><div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Subtotal</span><b>${gmd(inv.subtotal)}</b></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Discount</span><b>− ${gmd(inv.discount)}</b></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Tax</span><b>${gmd(inv.tax)}</b></div><div style="display:flex;justify-content:space-between;padding:9px 0;border-top:2px solid #0b8c52;font-size:17px;"><b>TOTAL (GMD)</b><b>${gmd(inv.total)}</b></div></div>
+      <div style="background:#f1f8f3;padding:12px;border-radius:8px;font-size:12px;margin-top:18px;"><b>Payment terms</b><div>${esc(inv.paymentTerms||"Please contact EcoStream to confirm payment terms.")}</div>${inv.serviceDate?`<div style="margin-top:6px;"><b>Proposed service appointment:</b> ${fmtDate(inv.serviceDate)} ${esc(inv.serviceTime||"")} (${esc(inv.scheduleStatus||"not-requested")})</div>`:""}${inv.notes?`<div style="margin-top:8px;"><b>Notes:</b> ${esc(inv.notes)}</div>`:""}</div>
+      <div style="border-top:1px solid #c8ddd0;margin-top:22px;padding-top:12px;font-size:10px;color:#4b6559;line-height:1.7;">Royal Africa House, (Opposite Indian Farm), OIC Highway, Sukuta, The Gambia<br>Phone: +220 380 6666 · Email: contact@ecostream.africa · www.ecostream.africa<br>Mobile Money: WAVE/DAHA 3806666 · Bank: MEGA Bank · Account Name: EcoStream<br><b>EcoStream — reliable water solutions for your home and business.</b></div>
+    </div>
+  `,`<button class="btn btn-outline" data-action="close-modal">Close</button><button class="btn btn-primary" data-action="print-service-invoice">⬇ Download / Print PDF</button>`);
+}
+
 async function openProjectDetail(id){
   const p = state.cache.projects.find(x=>x.id===id); if(!p) return;
   let timeline = [];
@@ -1155,7 +1220,7 @@ function closeModal(){ const m=document.getElementById("modal-root"); if(m) m.re
    ============================================================ */
 const LOADERS = {
   dashboard: loadDashboard, clients: loadClients, projects: ()=>loadProjects(),
-  staff: loadStaff, equipment: ()=>loadEquipment(), finance: ()=>loadFinance(),
+  staff: loadStaff, equipment: ()=>loadEquipment(), finance: ()=>loadFinance(), "service-invoices": loadServiceInvoices,
   tickets: loadTickets, chat: loadChat, notifications: loadNotifications,
   cms: loadCms, roles: loadRoles, audit: loadAudit, settings: loadSettings,
 };
@@ -1225,7 +1290,7 @@ document.addEventListener("click", async (e)=>{
 
   if(action==="proj-tab"){ document.getElementById("view-root").innerHTML = projectsHtml(t.dataset.tab); return; }
   if(action==="open-project"){ openProjectDetail(t.dataset.id); return; }
-  if(action==="booking-status"){
+  if(action==="prepare-service-invoice"){\n    try{const r=await api("/api/service-invoices/draft",{method:"POST",body:JSON.stringify({bookingId:t.dataset.id})});toast(r.message||"Draft prepared","success");serviceInvoiceEditor(r.invoice);}catch(err){}\n    return;\n  }\n  if(action==="edit-service-invoice"){const inv=(state.cache.serviceInvoices||[]).find(x=>x.id===t.dataset.id);if(inv)serviceInvoiceEditor(inv);return;}\n  if(action==="view-service-invoice-admin"){const inv=(state.cache.serviceInvoices||[]).find(x=>x.id===t.dataset.id);if(inv)serviceInvoicePreview(inv);return;}\n  if(action==="print-service-invoice"){window.print();return;}\n  if(action==="send-service-invoice"){\n    if(!confirm("Approve this reviewed invoice and make it visible to the customer? Confirm that all prices and payment terms are correct."))return;\n    try{const r=await api("/api/service-invoices/"+t.dataset.id+"/send",{method:"POST",body:JSON.stringify({})});toast(r.message||"Invoice sent","success");loadServiceInvoices();}catch(err){}\n    return;\n  }\n  if(action==="booking-status"){
     try{ await api("/api/bookings/"+t.dataset.id, {method:"PUT", body:JSON.stringify({status:t.dataset.status})}); toast("Booking updated","success"); loadProjects("bookings"); }catch{}
     return;
   }
@@ -1306,6 +1371,16 @@ document.addEventListener("submit", async (e)=>{
     else if(kind==="edit-staff"){ await api("/api/staff/"+form.dataset.id, {method:"PUT", body:JSON.stringify(data)}); toast("Staff updated","success"); closeModal(); loadStaff(); }
     else if(kind==="new-equipment"){ await api("/api/equipment", {method:"POST", body:JSON.stringify(data)}); toast("Equipment added","success"); closeModal(); loadEquipment(); }
     else if(kind==="new-expense"){ data.amount=Number(data.amount); await api("/api/expenses", {method:"POST", body:JSON.stringify(data)}); toast("Expense logged","success"); closeModal(); loadEquipment("expenses"); }
+    else if(kind==="service-invoice-edit"){
+      const lineItems=String(data.lineItemsText||"").split("\n").map(line=>line.trim()).filter(Boolean).map((line,index)=>{
+        const parts=line.split("|").map(v=>v.trim());
+        if(parts.length<3)throw new Error("Line "+(index+1)+" must use Description | Quantity | Unit price.");
+        return {description:parts[0],quantity:Number(parts[1]),unitPrice:Number(parts[2])};
+      });
+      delete data.lineItemsText; data.lineItems=lineItems; data.discount=Number(data.discount||0); data.tax=Number(data.tax||0);
+      const r=await api("/api/service-invoices/"+form.dataset.id,{method:"PUT",body:JSON.stringify(data)});
+      toast(r.message||"Invoice draft saved","success");closeModal();loadServiceInvoices();
+    }
     else if(kind==="new-invoice"){ data.amount=Number(data.amount); await api("/api/payments", {method:"POST", body:JSON.stringify(data)}); toast("Payment recorded","success"); closeModal(); loadFinance(); }
     else if(kind==="ticket-reply"){ await api("/api/tickets/"+form.dataset.id, {method:"PUT", body:JSON.stringify(data)}); toast("Ticket updated","success"); closeModal(); loadTickets(); }
     else if(kind==="admin-chat"){ form.reset(); await api("/api/chat/"+form.dataset.id, {method:"POST", body:JSON.stringify(data)}); refreshChatThread(form.dataset.id); }
