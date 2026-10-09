@@ -47,7 +47,10 @@ alter table public.service_invoices enable row level security;
 drop policy if exists "service invoices visible to owner and staff" on public.service_invoices;
 create policy "service invoices visible to owner and staff"
 on public.service_invoices for select to authenticated
-using (client_id = auth.uid() or (select private.is_staff_or_admin()));
+using (
+  (client_id = auth.uid() and status in ('sent','paid','overdue','cancelled'))
+  or (select private.is_staff_or_admin())
+);
 
 drop policy if exists "staff can create service invoices" on public.service_invoices;
 create policy "staff can create service invoices"
