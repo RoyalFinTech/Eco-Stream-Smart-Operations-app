@@ -7,6 +7,28 @@ function register(router) {
   router.post("/api/bookings", authenticate, async (req, res) => {
     const { package: pkg, drillingLocation, areaType, purpose, paymentPlan, requestType, latitude, longitude, locationAddress, waterRequirement, siteNotes, preferredContactTime, gpsAccuracy } = req.body;
     requireFields(req.body, ["drillingLocation"]);
+
+    // GPS coordinates are optional. If supplied, require a valid latitude/longitude pair.
+    const hasLatitude = latitude !== undefined && latitude !== null && String(latitude).trim() !== "";
+    const hasLongitude = longitude !== undefined && longitude !== null && String(longitude).trim() !== "";
+    if (hasLatitude !== hasLongitude) {
+      return sendJSON(res, 400, { error: "Precise coordinates are optional. If you enter them, provide both latitude and longitude." });
+    }
+    let parsedLatitude = null;
+    let parsedLongitude = null;
+    if (hasLatitude && hasLongitude) {
+      parsedLatitude = Number(latitude);
+      parsedLongitude = Number(longitude);
+      if (!Number.isFinite(parsedLatitude) || parsedLatitude < -90 || parsedLatitude > 90 ||
+          !Number.isFinite(parsedLongitude) || parsedLongitude < -180 || parsedLongitude > 180) {
+        return sendJSON(res, 400, { error: "Please enter valid GPS coordinates, or leave both coordinate fields blank." });
+      }
+    }
+    const parsedAccuracy = gpsAccuracy == null || gpsAccuracy === "" ? null : Number(gpsAccuracy);
+    if (parsedAccuracy !== null && (!Number.isFinite(parsedAccuracy) || parsedAccuracy < 0)) {
+      return sendJSON(res, 400, { error: "GPS accuracy must be a valid non-negative number." });
+    }
+
     const booking = await getRequestDb(req).collection("bookings").insert({
       clientId: req.user.id,
       requestType: requestType || "drilling", // "drilling" | "site-survey"
@@ -18,13 +40,13 @@ function register(router) {
       status: "pending",
       submittedAt: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
-      latitude: latitude == null || latitude === "" ? null : Number(latitude),
-      longitude: longitude == null || longitude === "" ? null : Number(longitude),
+      latitude: parsedLatitude,
+      longitude: parsedLongitude,
       locationAddress: locationAddress || "",
       waterRequirement: waterRequirement || "",
       siteNotes: siteNotes || "",
       preferredContactTime: preferredContactTime || "",
-      gpsAccuracy: gpsAccuracy == null || gpsAccuracy === "" ? null : Number(gpsAccuracy),
+      gpsAccuracy: parsedAccuracy,
     });
     sendJSON(res, 201, { booking });
   });
