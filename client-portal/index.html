@@ -1618,8 +1618,8 @@ document.addEventListener("submit", async (e)=>{
       state.authMode = "login"; renderAuth();
     }
     else if(kind==="booking"){
-      await api("/api/bookings", { method:"POST", body: JSON.stringify(data) });
-      toast("Request submitted! We'll review it shortly.", "success");
+      const result = await api("/api/bookings", { method:"POST", body: JSON.stringify(data) });
+      toast(result.message || "Thank you. Your request has been received, and our team will contact you about the next steps.", "success");
       state.view="dashboard"; render();
     }
     else if(kind==="ticket"){
