@@ -422,6 +422,37 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
  .eco-promo-arrow{bottom:8px;width:28px;height:28px}
  .eco-promo-controls{bottom:15px}
 }
+/* Responsive campaign-card correction: keep photo panels compact and avoid oversized mobile slides. */
+.eco-promo-carousel{width:100%;max-width:100%;margin-bottom:18px}
+.eco-promo-slide{min-height:260px}
+.eco-promo-art{min-height:260px;background-repeat:no-repeat;background-size:300% 100%;background-position:50% center}
+.eco-photo-payment{background-position:50% center!important}
+.eco-photo-drilling{background-position:0% center!important}
+.eco-photo-solar{background-position:100% center!important}
+.eco-promo-brand img{flex:0 0 auto}
+@media(max-width:700px){
+  .eco-promo-carousel{border-radius:18px;margin-bottom:14px}
+  .eco-promo-slide{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 150px;min-height:0}
+  .eco-promo-copy{padding:17px 18px 15px}
+  .eco-promo-brand{margin-bottom:10px}
+  .eco-promo-brand img{width:40px;height:40px}
+  .eco-promo-brand strong{font-size:13px}
+  .eco-promo-brand small{font-size:9px}
+  .eco-promo-kicker{font-size:9px;margin-bottom:6px}
+  .eco-promo-copy h2{font-size:clamp(23px,6.2vw,29px);line-height:1.06;margin-bottom:8px}
+  .eco-promo-copy p{font-size:12px;line-height:1.5;margin-bottom:11px}
+  .eco-promo-tags{gap:5px;margin-bottom:11px}
+  .eco-promo-tags span{font-size:9px;padding:5px 7px}
+  .eco-promo-cta{font-size:11px;padding:9px 13px}
+  .eco-promo-art{min-height:150px;max-height:150px;background-size:300% 100%;background-repeat:no-repeat}
+  .eco-promo-arrow{bottom:8px;width:29px;height:29px}
+  .eco-promo-controls{bottom:17px}
+}
+@media(min-width:701px) and (max-width:1050px){
+  .eco-promo-slide{grid-template-columns:minmax(0,1fr) minmax(220px,.8fr)}
+  .eco-promo-copy{padding:22px}
+  .eco-promo-art{min-height:250px}
+}
 </style>
 <style>
 @media print {
