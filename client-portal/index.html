@@ -291,6 +291,29 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 @keyframes shimmer{0%{background-position:100% 0;} 100%{background-position:-100% 0;}}
 
 /* === EcoStream Premium Client Experience v2 === */
+.eco-promo-carousel{position:relative;margin:0 0 20px;border-radius:24px;overflow:hidden;background:var(--card);border:1px solid rgba(9,104,65,.14);box-shadow:0 16px 38px rgba(6,58,43,.09);isolation:isolate}
+.eco-promo-track{display:grid;grid-template-columns:1fr;position:relative}
+.eco-promo-slide{grid-area:1/1;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(260px,.95fr);min-height:248px;opacity:0;visibility:hidden;transform:translateX(18px) scale(.99);transition:opacity .45s ease,transform .45s ease,visibility .45s;pointer-events:none;background:linear-gradient(115deg,#052c2a 0%,#075c42 55%,#087f50 100%);color:#fff}
+.eco-promo-slide.is-active{opacity:1;visibility:visible;transform:translateX(0) scale(1);pointer-events:auto;z-index:1}
+.eco-promo-copy{padding:27px 30px 25px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;position:relative;z-index:2}
+.eco-promo-brand{display:flex;align-items:center;gap:9px;margin-bottom:15px}
+.eco-promo-brand img{width:38px;height:38px;object-fit:contain;background:#fff;border-radius:12px;padding:3px}
+.eco-promo-brand strong{font-size:14px;letter-spacing:.025em}.eco-promo-brand small{display:block;font-size:10px;color:#b9ead5;margin-top:2px}
+.eco-promo-kicker{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#9ef0c8;font-weight:850;margin-bottom:8px}
+.eco-promo-copy h2{font-family:var(--font-display);font-size:clamp(25px,3vw,38px);line-height:1.05;margin:0 0 10px;max-width:500px;color:#fff}
+.eco-promo-copy p{font-size:13px;line-height:1.65;color:rgba(255,255,255,.8);max-width:460px;margin:0 0 16px}
+.eco-promo-tags{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 17px}.eco-promo-tags span{font-size:10px;font-weight:750;border:1px solid rgba(190,255,224,.28);background:rgba(255,255,255,.08);padding:6px 9px;border-radius:999px;color:#e4fff1}
+.eco-promo-cta{border:0;border-radius:999px;background:#c3f36a;color:#123c2a;padding:10px 17px;font-size:12px;font-weight:850;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.eco-promo-art{position:relative;display:grid;place-items:center;min-width:0;overflow:hidden;background:radial-gradient(ellipse at 65% 25%,rgba(145,236,190,.28),transparent 42%),linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,0))}
+.eco-promo-art:before,.eco-promo-art:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);width:310px;height:310px;right:-60px;top:-105px}.eco-promo-art:after{width:235px;height:235px;right:-20px;top:-65px}
+.eco-promo-art svg{position:relative;z-index:1;width:min(100%,420px);height:auto;max-height:250px;filter:drop-shadow(0 15px 14px rgba(0,0,0,.18))}
+.eco-promo-controls{position:absolute;z-index:3;left:0;right:0;bottom:12px;display:flex;align-items:center;justify-content:center;gap:7px;pointer-events:none}
+.eco-promo-dot{pointer-events:auto;width:8px;height:8px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.52);cursor:pointer;transition:width .2s,background .2s}
+.eco-promo-dot.is-active{width:24px;background:#c3f36a}
+.eco-promo-arrow{position:absolute;z-index:4;top:50%;transform:translateY(-50%);width:34px;height:34px;border:1px solid rgba(255,255,255,.24);border-radius:50%;background:rgba(255,255,255,.94);color:#07583f;font-size:18px;display:grid;place-items:center;cursor:pointer;box-shadow:0 5px 15px rgba(0,0,0,.12)}
+.eco-promo-arrow.prev{left:12px}.eco-promo-arrow.next{right:12px}
+@media(max-width:700px){.eco-promo-slide{grid-template-columns:1fr;min-height:0}.eco-promo-copy{padding:22px 21px 24px}.eco-promo-copy h2{font-size:27px;max-width:95%}.eco-promo-copy p{font-size:12px;max-width:95%;margin-bottom:12px}.eco-promo-brand{margin-bottom:11px}.eco-promo-art{min-height:150px;max-height:185px}.eco-promo-art svg{max-height:178px;width:min(100%,340px)}.eco-promo-art:before{width:210px;height:210px;top:-60px}.eco-promo-art:after{width:150px;height:150px;top:-30px}.eco-promo-arrow{top:auto;bottom:10px;transform:none;width:30px;height:30px}.eco-promo-arrow.prev{left:10px}.eco-promo-arrow.next{right:10px}.eco-promo-controls{bottom:18px}.eco-promo-cta{padding:9px 14px}}
+@media(prefers-reduced-motion:reduce){.eco-promo-slide{transition:none}}
 .client-hero{position:relative;overflow:hidden;border-radius:26px;padding:28px 30px;color:#fff;background:linear-gradient(135deg,#071D2B,#0A5A3A 62%,#0B8F4D);box-shadow:0 22px 55px rgba(4,50,35,.17);margin-bottom:18px;}
 .client-hero:after{content:"";position:absolute;width:240px;height:240px;border:38px solid rgba(255,255,255,.08);border-radius:50%;right:-55px;top:-100px;}
 .client-hero h1{font-family:var(--font-display);font-size:31px;line-height:1.1;margin:5px 0 8px;}
@@ -849,6 +872,7 @@ const NAV = [
 ];
 
 function renderShell(innerHtml, title){
+  if(title!=="Dashboard")stopEcoPromoCarousel();
   const theme = document.documentElement.getAttribute("data-theme");
   app.innerHTML = `
   <div class="app-shell">
@@ -889,6 +913,7 @@ async function loadDashboard(){
     ]);
     state.cache.unreadCount = notifRes.notifications.filter(n=>!n.read).length;
     renderShell(dashboardHtml(summary, projRes.projects), "Dashboard");
+    startEcoPromoCarousel();
   }catch(e){ renderShell(errorState("Couldn't load your dashboard."), "Dashboard"); }
 }
 function loadingSkeleton(){
@@ -897,6 +922,21 @@ function loadingSkeleton(){
 function errorState(msg){
   return `<div class="empty"><div class="ic">⚠️</div><div>${esc(msg)}</div><button class="btn btn-outline" style="margin-top:14px;" data-action="reload">Try again</button></div>`;
 }
+let ecoPromoTimer=null;
+let ecoPromoIndex=0;
+function showEcoPromo(index){
+  const root=document.getElementById("eco-promo-carousel");if(!root)return;
+  const slides=[...root.querySelectorAll("[data-promo-slide]")];if(!slides.length)return;
+  ecoPromoIndex=(index+slides.length)%slides.length;
+  slides.forEach((slide,i)=>{const active=i===ecoPromoIndex;slide.classList.toggle("is-active",active);slide.setAttribute("aria-hidden",active?"false":"true");});
+  root.querySelectorAll(".eco-promo-dot").forEach((dot,i)=>{const active=i===ecoPromoIndex;dot.classList.toggle("is-active",active);dot.setAttribute("aria-pressed",active?"true":"false");});
+}
+function startEcoPromoCarousel(){
+  if(ecoPromoTimer)clearInterval(ecoPromoTimer);
+  ecoPromoIndex=0;showEcoPromo(0);
+  ecoPromoTimer=setInterval(()=>{if(document.hidden)return;showEcoPromo(ecoPromoIndex+1);},3000);
+}
+function stopEcoPromoCarousel(){if(ecoPromoTimer){clearInterval(ecoPromoTimer);ecoPromoTimer=null;}}
 function dashboardHtml(summary, projects){
   const active = projects.find(p=>p.status==="ongoing");
   return `
@@ -909,6 +949,75 @@ function dashboardHtml(summary, projects){
       <button class="btn btn-ghost" data-action="nav" data-view="chat">💬 Talk to EcoStream</button>
       <button class="btn btn-ghost" data-action="nav" data-view="profile">👤 My Profile</button>
     </div>
+  </section>
+
+  <section class="eco-promo-carousel" id="eco-promo-carousel" aria-label="EcoStream service highlights">
+    <div class="eco-promo-track">
+      <article class="eco-promo-slide is-active" data-promo-slide="0" aria-hidden="false">
+        <div class="eco-promo-copy">
+          <div class="eco-promo-brand"><img src="/portal/assets/ecostream-logo.svg" alt="EcoStream official logo"><div><strong>EcoStream</strong><small>Water · Energy · A Better Tomorrow</small></div></div>
+          <div class="eco-promo-kicker">Flexible payment plan</div>
+          <h2>Get started now. Pay in instalments.</h2>
+          <p>Plan your borehole or eligible water service with manageable instalments. This offer is available only to eligible civil servants in The Gambia, subject to EcoStream approval.</p>
+          <div class="eco-promo-tags"><span>✓ Civil servants only</span><span>✓ Clear payment plan</span><span>✓ Human review</span></div>
+          <button class="eco-promo-cta" data-action="nav" data-view="book">Explore services <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="eco-promo-art" aria-hidden="true">
+          <svg viewBox="0 0 420 260" role="img">
+            <defs><linearGradient id="payCard" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#d7f8e6"/></linearGradient><linearGradient id="coin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe993"/><stop offset="1" stop-color="#d99a27"/></linearGradient></defs>
+            <ellipse cx="220" cy="229" rx="155" ry="18" fill="#002a22" opacity=".35"/>
+            <g transform="translate(56 37) rotate(-7 125 80)"><rect x="7" y="13" width="240" height="144" rx="18" fill="#032c2a" opacity=".35"/><rect width="240" height="144" rx="18" fill="url(#payCard)" stroke="#a7ebc8" stroke-width="2"/><rect x="17" y="17" width="42" height="42" rx="12" fill="#078452"/><path d="M28 43c8-22 18-21 22-18-2 16-10 22-22 18Z" fill="#b6f26e"/><path d="M26 45c9-9 17-9 27-7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><text x="72" y="35" font-size="13" font-weight="800" fill="#07543b">ECOSTREAM</text><text x="72" y="50" font-size="8" fill="#4c7767">FLEXIBLE PAYMENT PLAN</text><text x="18" y="87" font-size="10" fill="#4d6e62">YOUR MONTHLY PLAN</text><text x="18" y="113" font-size="24" font-weight="800" fill="#07543b">GMD ••••</text><rect x="18" y="124" width="204" height="6" rx="3" fill="#c0ebd4"/><rect x="18" y="124" width="110" height="6" rx="3" fill="#0c9c62"/></g>
+            <g transform="translate(268 116)"><ellipse cx="42" cy="91" rx="48" ry="12" fill="#003d2c" opacity=".25"/><ellipse cx="42" cy="74" rx="38" ry="12" fill="#b7791f"/><rect x="4" y="54" width="76" height="20" fill="#e4aa37"/><ellipse cx="42" cy="54" rx="38" ry="12" fill="url(#coin)" stroke="#ffdf78" stroke-width="2"/><ellipse cx="42" cy="48" rx="30" ry="10" fill="#f9d76c"/><rect x="15" y="27" width="55" height="22" fill="#d99a27"/><ellipse cx="42" cy="27" rx="28" ry="10" fill="#ffe993" stroke="#f7ce56" stroke-width="2"/><text x="42" y="32" text-anchor="middle" font-size="12" font-weight="900" fill="#956014">D</text><rect x="29" y="5" width="27" height="23" rx="4" fill="#d99a27"/><ellipse cx="42" cy="5" rx="14" ry="6" fill="#ffe993"/></g>
+            <path d="M328 44c-19-12-29-1-27 12 14 2 23-3 27-12Z" fill="#8ce39f"/><path d="M328 44c-2 15-12 21-24 22" stroke="#a9f0b2" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </article>
+      <article class="eco-promo-slide" data-promo-slide="1" aria-hidden="true">
+        <div class="eco-promo-copy">
+          <div class="eco-promo-brand"><img src="/portal/assets/ecostream-logo.svg" alt="EcoStream official logo"><div><strong>EcoStream</strong><small>Water · Energy · A Better Tomorrow</small></div></div>
+          <div class="eco-promo-kicker">Reliable borehole services</div>
+          <h2>Clean water starts with the right team.</h2>
+          <p>From site assessment to professional drilling, our team helps plan a water solution for your home, farm or business across The Gambia.</p>
+          <div class="eco-promo-tags"><span>✓ Site assessment</span><span>✓ Professional equipment</span><span>✓ Project updates</span></div>
+          <button class="eco-promo-cta" data-action="nav" data-view="book">Book a service <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="eco-promo-art" aria-hidden="true">
+          <svg viewBox="0 0 420 260" role="img">
+            <defs><linearGradient id="rigBlue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#58c6ff"/><stop offset="1" stop-color="#1264a2"/></linearGradient><linearGradient id="rigDark" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#234d61"/><stop offset="1" stop-color="#092b3d"/></linearGradient></defs>
+            <ellipse cx="218" cy="229" rx="164" ry="17" fill="#00271f" opacity=".35"/>
+            <path d="M37 217 92 190 358 190 395 218Z" fill="#d8b883"/><path d="M40 217 92 190 358 190 395 218 395 227 40 227Z" fill="#98764a"/>
+            <g transform="translate(135 12)"><path d="M36 17 125 17 142 186 18 186Z" fill="url(#rigDark)" stroke="#79d5ff" stroke-width="3"/><path d="M49 25 111 25 123 170 36 170Z" fill="url(#rigBlue)"/><path d="M58 28 58 167M77 28 77 167M97 28 97 167M116 28 116 167" stroke="#d7f2ff" stroke-width="3" opacity=".8"/><path d="M25 185 135 185 151 199 8 199Z" fill="#173b4a"/><rect x="63" y="40" width="30" height="107" rx="4" fill="#083c56"/><path d="M78 145v53" stroke="#d4f4ff" stroke-width="6"/><path d="M78 197c-11 8-8 14 0 19 9-5 11-12 0-19Z" fill="#6bd4ff"/><circle cx="31" cy="205" r="19" fill="#123746" stroke="#83c9e7" stroke-width="6"/><circle cx="128" cy="205" r="19" fill="#123746" stroke="#83c9e7" stroke-width="6"/><circle cx="31" cy="205" r="7" fill="#6f9fb2"/><circle cx="128" cy="205" r="7" fill="#6f9fb2"/></g>
+            <g transform="translate(48 109)"><circle cx="25" cy="15" r="13" fill="#754b31"/><path d="M12 13q13-21 27 0Z" fill="#f2f7f6"/><path d="M11 29 39 29 49 82 2 82Z" fill="#b6ed50"/><path d="M17 31 17 76M33 31 33 76" stroke="#fff" stroke-width="5"/><path d="M5 82 22 82 18 123 7 123Z" fill="#153f49"/><path d="M28 82 43 82 50 123 38 123Z" fill="#153f49"/><path d="M8 45-7 74M40 43 55 62" stroke="#a36c48" stroke-width="8" stroke-linecap="round"/><path d="M10 39 38 39" stroke="#1a7350" stroke-width="5"/></g>
+            <g transform="translate(284 111)"><circle cx="25" cy="15" r="13" fill="#8c5d3d"/><path d="M11 13q14-21 28 0Z" fill="#f7fbff"/><path d="M10 29 40 29 49 82 1 82Z" fill="#b6ed50"/><path d="M16 31 16 76M34 31 34 76" stroke="#fff" stroke-width="5"/><path d="M7 82 22 82 17 122 5 122Z" fill="#193b46"/><path d="M29 82 44 82 50 122 38 122Z" fill="#193b46"/><path d="M8 45-7 67M40 44 55 60" stroke="#8c5d3d" stroke-width="8" stroke-linecap="round"/></g>
+            <path d="M70 216c-4-9 6-16 12-8 8-8 17 1 12 9Z" fill="#6ed6ff"/><path d="M305 215c-5-9 5-16 11-8 8-8 17 1 12 9Z" fill="#6ed6ff"/>
+          </svg>
+        </div>
+      </article>
+      <article class="eco-promo-slide" data-promo-slide="2" aria-hidden="true">
+        <div class="eco-promo-copy">
+          <div class="eco-promo-brand"><img src="/portal/assets/ecostream-logo.svg" alt="EcoStream official logo"><div><strong>EcoStream</strong><small>Water · Energy · A Better Tomorrow</small></div></div>
+          <div class="eco-promo-kicker">Solar water solutions</div>
+          <h2>Power your water system with the sun.</h2>
+          <p>Explore solar installation, water-pump supply, maintenance and repairs to help keep your water moving with dependable support.</p>
+          <div class="eco-promo-tags"><span>✓ Solar pumping</span><span>✓ Pump installation</span><span>✓ Maintenance support</span></div>
+          <button class="eco-promo-cta" data-action="nav" data-view="book">Explore solar services <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="eco-promo-art" aria-hidden="true">
+          <svg viewBox="0 0 420 260" role="img">
+            <defs><linearGradient id="solarPanel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1d8bd1"/><stop offset="1" stop-color="#063c70"/></linearGradient><linearGradient id="pump" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#70d8ff"/><stop offset="1" stop-color="#0876b5"/></linearGradient></defs>
+            <ellipse cx="212" cy="228" rx="166" ry="17" fill="#002a22" opacity=".35"/>
+            <path d="M34 196 213 151 331 186 151 229Z" fill="#c1dfd0" opacity=".45"/>
+            <g transform="translate(30 56) skewY(-10)"><path d="M0 24 154 0 198 88 42 113Z" fill="#063b5e" stroke="#7dd8ff" stroke-width="4"/><path d="M14 28 154 7 183 80 44 103Z" fill="url(#solarPanel)"/><path d="M59 21 85 96M105 14 132 88M25 53 170 30M35 77 181 54" stroke="#7dd8ff" stroke-width="2" opacity=".8"/><path d="M43 112 41 151M169 89 184 128" stroke="#d2e5e0" stroke-width="8"/><path d="M22 152 202 125" stroke="#b7cfc7" stroke-width="8" stroke-linecap="round"/></g>
+            <g transform="translate(244 104)"><rect x="8" y="44" width="108" height="60" rx="12" fill="url(#pump)" stroke="#a5e6ff" stroke-width="3"/><rect x="24" y="24" width="76" height="25" rx="7" fill="#0b5d8b"/><path d="M116 62h26v-42h20" stroke="#a8e8ff" stroke-width="12" fill="none" stroke-linejoin="round"/><path d="M162 20v33" stroke="#a8e8ff" stroke-width="12" stroke-linecap="round"/><circle cx="62" cy="74" r="23" fill="#075a91" stroke="#c2f0ff" stroke-width="5"/><circle cx="62" cy="74" r="9" fill="#7bdcff"/><rect x="26" y="104" width="74" height="9" rx="4" fill="#0b405b"/><path d="M16 114 6 126M104 114 116 126" stroke="#0b405b" stroke-width="7" stroke-linecap="round"/></g>
+            <g transform="translate(194 36)"><circle cx="27" cy="15" r="13" fill="#855638"/><path d="M13 13q14-21 28 0Z" fill="#fff"/><path d="M11 29 42 29 48 83 3 83Z" fill="#b6ed50"/><path d="M17 31 17 76M35 31 35 76" stroke="#fff" stroke-width="5"/><path d="M7 83 23 83 19 124 7 124Z" fill="#163e49"/><path d="M29 83 44 83 51 124 38 124Z" fill="#163e49"/><path d="M11 43-3 63M41 44 56 61" stroke="#855638" stroke-width="8" stroke-linecap="round"/><path d="M9 39 40 39" stroke="#168b5d" stroke-width="5"/></g>
+            <path d="M353 43v25M341 55h24" stroke="#ffe17c" stroke-width="4" stroke-linecap="round"/><path d="M347 35l6-10 6 10" stroke="#ffe17c" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </article>
+    </div>
+    <button class="eco-promo-arrow prev" data-action="promo-prev" aria-label="Previous promotion">‹</button>
+    <button class="eco-promo-arrow next" data-action="promo-next" aria-label="Next promotion">›</button>
+    <div class="eco-promo-controls" aria-label="Choose promotion"><button class="eco-promo-dot is-active" data-action="promo-slide" data-index="0" aria-label="Show instalment plan"></button><button class="eco-promo-dot" data-action="promo-slide" data-index="1" aria-label="Show borehole drilling"></button><button class="eco-promo-dot" data-action="promo-slide" data-index="2" aria-label="Show solar and pump services"></button></div>
   </section>
 
   <section class="client-kpis">
@@ -1485,6 +1594,9 @@ document.addEventListener("click", async (e)=>{
     if(action==="passkey-login"){ signInWithPasskey(); return; }
   if(action==="register-passkey"){ registerPasskey(); return; }
   if(action==="toggle-biometric"){ const input=document.getElementById("registration-biometric"); if(input) input.checked=!input.checked; return; }
+  if(action==="promo-prev"){showEcoPromo(ecoPromoIndex-1);return;}
+  if(action==="promo-next"){showEcoPromo(ecoPromoIndex+1);return;}
+  if(action==="promo-slide"){showEcoPromo(Number(t.dataset.index)||0);return;}
   if(action==="nav"){ state.view = t.dataset.view; document.getElementById("sidebar")?.classList.remove("open"); document.querySelector(".sidebar-scrim")?.classList.remove("show"); render(); return; }
    if(action==="brand-home"){ document.getElementById("sidebar")?.classList.remove("open"); document.querySelector(".sidebar-scrim")?.classList.remove("show"); state.view="dashboard"; render(); return; }
   if(action==="logout"){ logout(); return; }
