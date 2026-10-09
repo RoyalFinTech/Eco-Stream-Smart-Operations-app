@@ -1,7 +1,7 @@
 const { getRequestDb } = require("../lib/requestDb");
 const { sendJSON, authenticate, requireRole } = require("../lib/router");
 const { ValidationError, sanitizeText } = require("../lib/validate");
-const { toCamel } = require("../lib/supabaseSchemaMap");
+const { toCamel, toSnake } = require("../lib/supabaseSchemaMap");
 
 const LABELS = {
   drilling: "Borehole Drilling", "site-survey": "Site Survey", maintenance: "Borehole Maintenance",
@@ -63,6 +63,22 @@ async function adminTableRequest(table, method, query, body) {
   return Array.isArray(data) ? data : [];
 }
 
+async function findServiceInvoice(id) {
+  const rows = await adminTableRequest("service_invoices", "GET", "id=eq." + encodeURIComponent(id) + "&select=*&limit=1");
+  return rows[0] ? toCamel("service_invoices", rows[0]) : null;
+}
+async function insertServiceInvoice(record) {
+  const rows = await adminTableRequest("service_invoices", "POST", "", toSnake("service_invoices", record));
+  if (!rows[0]) throw Object.assign(new Error("The invoice draft could not be saved."), {status:502});
+  return toCamel("service_invoices", rows[0]);
+}
+async function updateServiceInvoice(id, patch) {
+  const body = toSnake("service_invoices", patch);
+  body.updated_at = new Date().toISOString();
+  const rows = await adminTableRequest("service_invoices", "PATCH", "id=eq." + encodeURIComponent(id) + "&select=*", body);
+  return rows[0] ? toCamel("service_invoices", rows[0]) : null;
+}
+
 function register(router) {
   router.get("/api/service-invoices", authenticate, async (req, res) => {
     // This table is intentionally not readable by the client-facing publishable key.
@@ -82,7 +98,7 @@ function register(router) {
     const client = await getClient(db, booking.clientId);
     const serviceType = booking.requestType || "drilling";
     const lines = (SERVICE_LINES[serviceType] || ["Service work as agreed"]).map(description => ({description, quantity:1, unitPrice:0}));
-    const invoice = await db.collection("service_invoices").insert({
+    const invoice = await insertServiceInvoice({
       bookingId: booking.id, clientId: booking.clientId, serviceType,
       clientName: client.name || "Customer", clientPhone: client.phone || "",
       clientAddress: client.address || "", serviceAddress: booking.drillingLocation || "",
@@ -98,7 +114,7 @@ function register(router) {
 
   router.put("/api/service-invoices/:id", authenticate, requireRole("admin", "staff"), async (req, res) => {
     const db = getRequestDb(req);
-    const current = await db.collection("service_invoices").findById(req.params.id);
+    const current = await findServiceInvoice(req.params.id);
     if (!current) return sendJSON(res, 404, {error:"Invoice not found."});
     if (["sent","paid","cancelled"].includes(current.status)) throw Object.assign(new Error("Issued, paid or cancelled invoices cannot be edited here. Create a revised invoice or use the proper bookkeeping adjustment process."), {status:409});
     const items = parseItems(req.body.lineItems);
@@ -119,13 +135,13 @@ function register(router) {
     if (!patch.serviceAddress) throw new ValidationError("The service address is required.");
     if (patch.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(patch.dueDate)) throw new ValidationError("Enter a valid due date.");
     if (patch.serviceDate && !/^\d{4}-\d{2}-\d{2}$/.test(patch.serviceDate)) throw new ValidationError("Enter a valid proposed service date.");
-    const updated = await db.collection("service_invoices").updateById(current.id, patch);
+    const updated = await updateServiceInvoice(current.id, patch);
     sendJSON(res, 200, {invoice:updated, message:"Invoice draft saved. Please review totals and terms before sending."});
   });
 
   router.post("/api/service-invoices/:id/send", authenticate, requireRole("admin", "staff"), async (req, res) => {
     const db = getRequestDb(req);
-    const current = await db.collection("service_invoices").findById(req.params.id);
+    const current = await findServiceInvoice(req.params.id);
     if (!current) return sendJSON(res, 404, {error:"Invoice not found."});
     if (current.status !== "draft" && current.status !== "approved") throw Object.assign(new Error("Only a reviewed draft can be sent."), {status:409});
     const items = parseItems(current.lineItems);
@@ -133,7 +149,7 @@ function register(router) {
     if (calculated.total <= 0) throw new ValidationError("Add and confirm the actual service prices before sending this invoice.");
     if (!current.clientName || !current.serviceAddress) throw new ValidationError("Customer name and service address are required before sending.");
     const now = new Date().toISOString();
-    const updated = await db.collection("service_invoices").updateById(current.id, {
+    const updated = await updateServiceInvoice(current.id, {
       ...calculated, lineItems:items, status:"sent", approvedBy:req.user.id, approvedAt:now, sentAt:now, updatedAt:now
     });
     await db.collection("notifications").insert({
@@ -146,7 +162,7 @@ function register(router) {
 
   router.put("/api/service-invoices/:id/schedule", authenticate, async (req, res) => {
     const db = getRequestDb(req);
-    const current = await db.collection("service_invoices").findById(req.params.id);
+    const current = await findServiceInvoice(req.params.id);
     if (!current) return sendJSON(res, 404, {error:"Invoice not found."});
     if (req.user.role === "client" && current.clientId !== req.user.id) return sendJSON(res, 403, {error:"You cannot change another customer's schedule."});
     if (!["sent","paid"].includes(current.status)) throw Object.assign(new Error("Scheduling is available once the invoice has been sent."), {status:409});
@@ -170,7 +186,7 @@ function register(router) {
         read:false, date:now.slice(0,10), created_at:now
       });
     } else {
-      updated = await db.collection("service_invoices").updateById(current.id, {
+      updated = await updateServiceInvoice(current.id, {
         serviceDate, serviceTime, scheduleStatus,
         scheduleNotes:clean(req.body?.scheduleNotes,1000), updatedAt:now
       });
