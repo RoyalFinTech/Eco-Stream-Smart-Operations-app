@@ -327,9 +327,22 @@ html[data-theme="dark"] .badge-green{background:#0F3323;}
 .booking-step{padding:10px;border-radius:13px;background:var(--card);border:1px solid var(--border);font-size:10px;font-weight:800;color:var(--text-muted);}
 .booking-step.active{background:#E8F7F0;border-color:#A7E8C7;color:var(--green-dark);}
 .booking-card{background:var(--card);border:1px solid var(--border);border-radius:21px;padding:20px;box-shadow:var(--shadow-soft);}
-.location-card{border:1px dashed #8BCFAE;background:#F2FBF6;border-radius:17px;padding:15px;margin:12px 0;}
-.location-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.location-card{position:relative;overflow:hidden;border:1px solid rgba(16,145,83,.22);background:linear-gradient(135deg,#effcf5 0%,#ffffff 54%,#e0f8eb 100%);border-radius:20px;padding:16px;margin:14px 0 18px;box-shadow:0 10px 26px rgba(10,115,67,.07);}
+.location-card:before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,#20b66c,#087342);border-radius:20px 0 0 20px;}
+.location-card-head{display:flex;align-items:flex-start;gap:12px;}
+.location-card-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#17a765,#087342);color:#fff;font-size:21px;box-shadow:0 6px 13px rgba(8,115,66,.2);}
+.location-card-copy{flex:1;min-width:0;}
+.location-card-title{font-size:14px;font-weight:850;color:#103e2b;line-height:1.35;}
+.location-card-subtitle{font-size:11px;line-height:1.55;color:#5a7266;margin-top:4px;}
+.location-optional{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;background:#d7f5e4;color:#087342;font-size:9px;font-weight:850;letter-spacing:.07em;white-space:nowrap;}
+.location-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;padding:11px 13px;border:1px solid #a6ddbd;border-radius:13px;background:rgba(255,255,255,.82);color:#087342;font-weight:800;font-size:12px;cursor:pointer;}
+.location-toggle:active{transform:scale(.99);}
+.location-details{padding-top:15px;margin-top:14px;border-top:1px solid rgba(8,115,66,.13);}
+.location-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .location-actions .btn{font-size:11px;}
+.location-card .field label{font-size:11px;color:#527263;}
+.location-card .field input{background:#fff;border-color:#dcebe2;}
+@media(prefers-color-scheme:dark){.location-card{background:linear-gradient(135deg,#102c20,#142b22 55%,#173c2a);border-color:#2a6548}.location-card-title{color:#e1f8e9}.location-card-subtitle,.location-card .field label{color:#b4d4c2}.location-toggle{background:#183c2a;color:#b8f2ce;border-color:#356d50}.location-card .field input{background:#12271d;border-color:#315c46;color:#edf9f1}.location-optional{background:#174b31;color:#baf1cf}}
 @media(max-width:900px){.client-kpis{grid-template-columns:repeat(2,1fr)}.client-main-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.client-hero{padding:22px 19px}.client-hero h1{font-size:27px}.client-kpis{gap:9px}.client-kpi{padding:13px}.client-kpi .value{font-size:21px}.client-feature{grid-template-columns:1fr}.booking-card{padding:15px}.booking-step{padding:8px 6px;font-size:9px}}
 
@@ -939,22 +952,33 @@ function bookHtml(){
       <form data-form="booking">
         <input type="hidden" name="requestType" value="drilling" id="requestTypeInput">
         <div class="field"><label>Project / Site Location *</label><input name="drillingLocation" required placeholder="e.g. Brikama, Kombo South"></div>
-        <div class="location-card">
-          <div style="font-weight:800;font-size:13px;">📍 Precise site coordinates</div>
-          <div style="font-size:11px;color:var(--text-muted);margin:4px 0 10px;">Use your phone GPS or enter the location manually. This helps our drilling team plan the site visit.</div>
-          <div class="location-actions">
-            <button type="button" class="btn btn-outline btn-sm" data-action="get-location">📡 Use Current Location</button>
-            <span id="gps-status" style="font-size:11px;color:var(--text-muted);align-self:center;">Location not captured</span>
+        <section class="location-card" aria-label="Optional precise site location">
+          <div class="location-card-head">
+            <div class="location-card-icon" aria-hidden="true">⌖</div>
+            <div class="location-card-copy">
+              <div class="location-card-title">Help us pinpoint your site</div>
+              <div class="location-card-subtitle">Share GPS coordinates or a nearby landmark if you have them. You can submit your booking without these details.</div>
+            </div>
+            <span class="location-optional">OPTIONAL</span>
           </div>
-          <input type="hidden" name="latitude" id="booking-latitude">
-          <input type="hidden" name="longitude" id="booking-longitude">
-          <input type="hidden" name="gpsAccuracy" id="booking-gps-accuracy">
-          <div class="grid grid-2">
-            <div class="field"><label>Latitude</label><input name="latitudeDisplay" id="booking-latitude-display" inputmode="decimal" placeholder="e.g. 13.45"></div>
-            <div class="field"><label>Longitude</label><input name="longitudeDisplay" id="booking-longitude-display" inputmode="decimal" placeholder="-16.68"></div>
+          <button type="button" class="location-toggle" data-action="toggle-location-details" aria-expanded="false" aria-controls="booking-location-details">
+            <span>＋ Add precise location</span><span aria-hidden="true">⌄</span>
+          </button>
+          <div class="location-details" id="booking-location-details" hidden>
+            <div class="location-actions">
+              <button type="button" class="btn btn-outline btn-sm" data-action="get-location">📡 Use Current Location</button>
+              <span id="gps-status" style="font-size:11px;color:var(--text-muted);align-self:center;">No location added — that's okay</span>
+            </div>
+            <input type="hidden" name="latitude" id="booking-latitude">
+            <input type="hidden" name="longitude" id="booking-longitude">
+            <input type="hidden" name="gpsAccuracy" id="booking-gps-accuracy">
+            <div class="grid grid-2">
+              <div class="field"><label>Latitude (optional)</label><input name="latitudeDisplay" id="booking-latitude-display" inputmode="decimal" placeholder="e.g. 13.45"></div>
+              <div class="field"><label>Longitude (optional)</label><input name="longitudeDisplay" id="booking-longitude-display" inputmode="decimal" placeholder="e.g. -16.68"></div>
+            </div>
+            <div class="field" style="margin-bottom:0;"><label>Address / Landmark (optional)</label><input name="locationAddress" placeholder="Nearest landmark, compound or village"></div>
           </div>
-          <div class="field" style="margin-bottom:0;"><label>Address / Landmark</label><input name="locationAddress" placeholder="Nearest landmark, compound or village"></div>
-        </div>
+        </section>
         <div class="grid grid-2">
           <div class="field"><label>Service Package</label><select name="package"><option value="standard">Standard Borehole</option><option value="solar">Solar-Powered Water Solution</option><option value="premium">Premium / Commercial</option></select></div>
           <div class="field"><label>Area Type</label><select name="areaType"><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="agricultural">Agricultural</option></select></div>
@@ -1357,7 +1381,20 @@ document.addEventListener("click", async (e)=>{
   if(action==="close-modal"){ closeModal(); return; }
   if(action==="reload"){ render(); return; }
 
+  if(action==="toggle-location-details"){
+    const details=document.getElementById("booking-location-details");
+    if(details){
+      const opening=details.hidden;
+      details.hidden=!opening;
+      t.setAttribute("aria-expanded",String(opening));
+      t.innerHTML=opening?"<span>− Hide location details</span><span aria-hidden=\"true\">⌃</span>":"<span>＋ Add precise location</span><span aria-hidden=\"true\">⌄</span>";
+    }
+    return;
+  }
   if(action==="get-location"){
+    const details=document.getElementById("booking-location-details");
+    const toggle=document.querySelector('[data-action="toggle-location-details"]');
+    if(details?.hidden){details.hidden=false;toggle?.setAttribute("aria-expanded","true");if(toggle)toggle.innerHTML="<span>− Hide location details</span><span aria-hidden=\"true\">⌃</span>";}
     const status=document.getElementById("gps-status");
     if(!navigator.geolocation){ if(status) status.textContent="GPS is not supported on this device"; return; }
     if(status) status.textContent="Requesting location…";
