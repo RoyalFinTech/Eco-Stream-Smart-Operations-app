@@ -762,7 +762,7 @@ async function loadServiceInvoices(){
 const SERVICE_TITLES = {drilling:"Borehole Drilling","site-survey":"Site Survey",maintenance:"Borehole Maintenance",repair:"Borehole Repair","solar-installation":"Solar Water Installation","pump-service":"Water Pump Services",cleaning:"Borehole Cleaning","water-quality":"Water Quality Testing"};
 function serviceInvoicesHtml(invoices,bookings,clients){
   const clientName=id=>(clients.find(c=>c.id===id)||{}).name||"Customer";
-  const readyBookings=bookings.filter(b=>!["rejected"].includes(b.status));
+  const readyBookings=bookings.filter(b=>!["rejected"].includes(b.status)&&!invoices.some(i=>i.bookingId===b.id));
   return `
     <section class="admin-hero"><div class="eyebrow">EcoStream Finance</div><h1>Service invoices</h1><p>Prepare a draft from a customer booking, confirm every price yourself, then send the approved invoice to the customer's portal.</p></section>
     <div class="card card-pad" style="margin-bottom:18px;"><div class="row-between"><div><b>Bookings awaiting an invoice</b><div class="field-hint">AI-style assistance is limited to organising service details. It does not invent prices or approve invoices.</div></div><span class="badge badge-amber">${readyBookings.length} bookings</span></div>
